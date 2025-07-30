@@ -1,7 +1,8 @@
 <script>
     import {onMount} from "svelte";
+    import {fade} from "svelte/transition";
 
-    let {activated} = $props();
+    let {activated = $bindable()} = $props();
 
     let date = $state(new Date());
     onMount(() => {
@@ -58,7 +59,7 @@
                 });
                 const delay = document.querySelector(".android-unlock").style.animationDelay;
                 console.log(parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')))
-                setTimeout(activated, 300 + 1000*parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')))
+                setTimeout(() => activated = true, 300 + 1000*parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')))
             } else {
                 document.querySelectorAll(".android-unlock").forEach(el => {
                     let val = el.style.animationDelay;
@@ -81,7 +82,7 @@
 
 <svelte:window on:mousedown={down} on:mousemove={move} on:mouseup={up} on:touchstart|nonpassive={down} on:touchmove|nonpassive={move} on:touchend|nonpassive={up} />
 
-<div class="android-unlock android-unlock-screen">
+<div class="android-unlock android-unlock-screen" in:fade|global={{delay: 300}}>
     <div class="absolute top-4 left-4">
         <b>Pindle</b>: Crack the PIN code
     </div>
