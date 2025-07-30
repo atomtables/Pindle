@@ -45,13 +45,13 @@
             });
         }
     }
-    function up() {
+    function up(event) {
         if (event.type.includes('touch')) event.preventDefault();
         const percent = -(cursor.currentY - cursor.initialY) / cursor.screenHeight;
 
         if (cursor.mousedown) {
             cursor.mousedown = false;
-            if (percent >= 0.5) {
+            if (percent >= 0.35) {
                 document.querySelectorAll(".android-unlock").forEach(el => {
                     el.style.animationFillMode = 'forwards';
                     el.classList.add("activate");

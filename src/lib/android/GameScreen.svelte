@@ -3,6 +3,7 @@
     import {crossfade, fade, scale, slide, fly} from "svelte/transition";
     import {flip} from "svelte/animate";
     import {cubicOut} from "svelte/easing";
+    import {Counter} from "$lib/gameplay/Counter.js"
 
     let { difficulty, answer } = $props();
 
@@ -37,6 +38,9 @@
         } else if (e.key === 'Enter') {
         }
     };
+    const calculatetimeout = () => {
+        return 750
+    }
     const onpinclick = e => {
         if (!e || lockPin) return;
         input += e;
@@ -65,27 +69,41 @@
                         correctBeads = [];
                         currentAttempt = 0;
                         shownAttempt = 0;
-                    }, 1000);
+                    }, 500);
                 } else {
                     status = "Wrong PIN";
+                    setTimeout(() => input = "", 600)
                     setTimeout(() => {
                         isToUnlock = false;
                         lockPin = false;
-                        input = "";
-                    }, 500)
+                    }, 800)
                 }
             }
-            isToUnlock = false
-            lockPin = false;
-        }, 1000)
+        }, calculatetimeout())
     };
     const showattempt = () => {
         let beads = [];
+        let counter = new Counter(input);
+        let inputs = counter.result;
+        let answerdup = answer.split('');
+        // get exact places
         for (let i = 0; i < input.length; i++) {
-            if (answer[i] === input[i]) beads.push(2);
-            else if (answer.includes(input[i])) beads.push(1);
-            else beads.push(0);
+            if (input[i] === answer?.[i]) {
+                beads.push(2);
+                inputs[input[i]]--;
+                answerdup[i] = null;
+            }
         }
+        for (let [k, v] of counter) {
+            for (let j = 0; j < v; j++) {
+                if (answerdup.includes(k)) {
+                    beads.push(1);
+                } else {
+                    beads.push(0);
+                }
+            }
+        }
+
         correctBeads.push(beads.sort().reverse());
         shownAttempt = ++currentAttempt;
     }
@@ -122,6 +140,7 @@
             }
         };
     }
+    const [send, receive] = crossfade({});
 
     onMount(() => {
         document.querySelectorAll(".android-pin-number").forEach((el, i) => {
@@ -161,26 +180,40 @@
 <svelte:window onkeydown={onkeydown}/>
 
 <div class="absolute bottom-0 flex flex-col w-full text-center py-2">
-    <div class="text-xs text-neutral-400 mb-3">
-        {shownAttempt}/{currentAttempt}
-    </div>
-    <div class="flex flex-col items-center justify-center mb-2">
-        {#each correctBeads as beads, i (i)}
-            {#if shownAttempt - 1 === i}
-                <div class="flex flex-row items-center justify-center">
-                    {#each beads as bead, i}
-                        {#if bead === 2}
-                            <img alt="Dot Fill" class="h-4 aspect-square w-8 invert dark:invert-0" src="/android/dotfill.svg">
-                        {:else if bead === 1}
-                            <img alt="Dot Fill" class="h-4 aspect-square w-8 invert dark:invert-0" src="/android/dot.svg">
-                        {:else}
-                            <img alt="Dot Fill" class="h-4 aspect-square w-8 invert dark:invert-0" src="/android/dotempty.svg">
+    {#if correctBeads.length >= 0}
+        <div class="text-xs text-neutral-400">
+            {shownAttempt}/{currentAttempt}
+        </div>
+        <div class="flex flex-row items-center justify-center">
+            <button class="h-12 w-12 grid place-items-center rounded-full ease-linear duration-75 disabled:opacity-60 not-disabled:hover:bg-neutral-300/50 not-disabled:hover:dark:bg-neutral-700/50 not-disabled:active:bg-neutral-500/50 not-disabled:dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => shownAttempt--} disabled={shownAttempt <= 0}>
+                <img alt="backspace" class="h-5 right-1 invert dark:invert-0" src="/android/back.svg">
+            </button>
+            <div class="flex flex-col items-center justify-between h-4">
+                {#each correctBeads as beads, i (i)}
+                    <div animate:flip>
+                        {#if shownAttempt - 1 === i}
+                            <div class="flex flex-row items-center justify-center" transition:slide={{axis: 'y'}}>
+                                {#each beads as bead, j (j)}
+                                    <div in:fade|global={{duration: 300, delay: 150 * (j+1)}} class="flex items-center justify-center">
+                                        {#if bead === 2}
+                                            <img alt="Dot Fill" class="h-4 aspect-square w-8 invert dark:invert-0" src="/android/dotfill.svg">
+                                        {:else if bead === 1}
+                                            <img alt="Dot Fill" class="h-4 aspect-square w-8 invert dark:invert-0" src="/android/dot.svg">
+                                        {:else}
+                                            <img alt="Dot Fill" class="h-4 aspect-square w-8 invert dark:invert-0" src="/android/dotempty.svg">
+                                        {/if}
+                                    </div>
+                                {/each}
+                            </div>
                         {/if}
-                    {/each}
-                </div>
-            {/if}
-        {/each}
-    </div>
+                    </div>
+                {/each}
+            </div>
+            <button class="h-12 w-12 grid place-items-center rounded-full ease-linear duration-75 disabled:opacity-60 not-disabled:hover:bg-neutral-300/50 not-disabled:hover:dark:bg-neutral-700/50 not-disabled:active:bg-neutral-500/50 not-disabled:dark:active:bg-neutral-500/50 not-disabled:cursor-pointer not-disabled:transition-all" onclick={() => shownAttempt++} disabled={shownAttempt >= currentAttempt}>
+                <img alt="backspace" class="h-5 right-1 invert dark:invert-0" src="/android/forward.svg">
+            </button>
+        </div>
+    {/if}
 <!--    <div class="text-sm text-neutral-300" transition:fly={{y: 40}}>{status}</div>-->
     <div class="px-5" transition:fly={{delay: 50, y: 40}}>
         <div class="border-b-2 border-neutral-500 text-5xl  font-thin w-full p-2">
@@ -211,7 +244,7 @@
                         </div>
                     {/each}
                 </div>
-                <button class="absolute right-2 h-12 w-12 grid place-items-center rounded-full ease-linear duration-75 hover:bg-neutral-700/50 active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => input = input.slice(0, -1)}>
+                <button class="absolute right-2 h-12 w-12 grid place-items-center rounded-full ease-linear duration-75 hover:bg-neutral-300/50 dark:hover:bg-neutral-700/50 active:bg-neutral-500/50 dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => input = input.slice(0, -1)} disabled={input.length <= 0}>
                     <img alt="backspace" class="h-5 right-1 invert dark:invert-0" src="/android/backspace.svg">
                 </button>
             </div>
