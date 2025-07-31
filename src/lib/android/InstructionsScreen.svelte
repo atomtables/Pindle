@@ -14,7 +14,7 @@
 </script>
 
 {#if !animateAway}
-    <div class="w-full h-full p-2 pb-[env(safe-area-inset-bottom)] md:pb-2 flex flex-col justify-between" in:fly|global={{y: "100%"}} out:fade|global={{easing: quintIn, duration: 500}} onoutroend={() => setTimeout(onoutroend, 200)}>
+    <div class="w-full h-full p-2 pb-[env(safe-area-inset-bottom)] md:pb-2 flex flex-col justify-between" in:fly|global={{y: "100%"}} out:fly|global={{y: "-100%"}} onoutroend={() => setTimeout(onoutroend, 200)}>
         <div>
             <div class="font-thin text-6xl pt-2">
                 Instructions
