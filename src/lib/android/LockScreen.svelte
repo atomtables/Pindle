@@ -2,7 +2,7 @@
     import {onMount} from "svelte";
     import {fade} from "svelte/transition";
 
-    let {activated = $bindable()} = $props();
+    let {activated = $bindable(), instructions = $bindable()} = $props();
 
     let date = $state(new Date());
     onMount(() => {
@@ -23,6 +23,9 @@
     })
     function down(event) {
         if (event.type.includes('touch')) event.preventDefault();
+        if (event.target.closest('button[preventInteraction]')) {
+            return;
+        }
         cursor.mousedown = true;
         const clientY = event.type.includes('touch') ? event.touches[0].clientY : event.clientY;
         cursor.initialY = clientY;
@@ -49,16 +52,20 @@
     function up(event) {
         if (event.type.includes('touch')) event.preventDefault();
         const percent = -(cursor.currentY - cursor.initialY) / cursor.screenHeight;
-
-        if (cursor.currentY === cursor.initialY && window.matchMedia("(min-width: 768px)").matches) {
-            document.querySelectorAll(".android-unlock").forEach(el => {
-                el.style.animationFillMode = 'forwards';
-                el.classList.add("activate");
-            });
-            const delay = document.querySelector(".android-unlock").style.animationDelay;
-            console.log(parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')) || 0)
-            setTimeout(() => activated = true, 300 + 1000*(parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')) || 0))
-            return
+        if (event.target.closest('button[preventInteraction]')) {
+            return;
+        }
+        if (cursor.currentY === cursor.initialY) {
+            if (window.matchMedia("(min-width: 768px)").matches) {
+                document.querySelectorAll(".android-unlock").forEach(el => {
+                    el.style.animationFillMode = 'forwards';
+                    el.classList.add("activate");
+                });
+                const delay = document.querySelector(".android-unlock").style.animationDelay;
+                console.log(parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')) || 0)
+                setTimeout(() => activated = true, 300 + 1000 * (parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')) || 0))
+                return
+            }
         }
 
         if (cursor.mousedown) {
@@ -89,11 +96,34 @@
             }
         }
     }
+
+    let statusMessage = $state("");
+    let instructionsB = $state();
+    function instructionsF(event) {
+        if (!this.clickOnce) {
+            instructionsB.style.backgroundColor = "color-mix(in oklab, var(--color-neutral-600) 70%, transparent)";
+            instructionsB.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.16), 0 2px 4px rgba(0, 0, 0, 0.23)";
+            statusMessage = "Tap again to open"
+            this.clickOnce = true;
+            setTimeout(() => {
+                if (!instructionsB) return;
+                statusMessage = "";
+                instructionsB.style.backgroundColor = "";
+                instructionsB.style.boxShadow = "";
+                this.clickOnce = false;
+            }, 1000);
+        } else {
+            document.querySelectorAll(".android-unlock").forEach(el => el.classList.add("activate"))
+            setTimeout(() => {
+                instructions = true;
+            }, 300)
+        }
+    }
 </script>
 
 <svelte:window on:mousedown={down} on:mousemove={move} on:mouseup={up} on:touchstart|nonpassive={down} on:touchmove|nonpassive={move} on:touchend|nonpassive={up} />
 
-<div class="android-unlock android-unlock-screen" in:fade|global>
+<div class="android-unlock android-unlock-screen" in:fade|global={{duration: 500}}>
     <div class="absolute top-4 left-4">
         <b>Pindle</b>: Crack the PIN code
     </div>
@@ -113,22 +143,35 @@
                 {date.toLocaleDateString('en-us', { weekday: 'long', month: 'long', day: 'numeric' })}
             </div>
         </div>
-        <div class="px-2 py-3 mt-4 bg-neutral-300 dark:bg-neutral-700 mx-5 flex flex-row items-center android-unlock android-unlock-notifications">
-            <img src="favicon.svg" alt="Pindle Icon" class="w-10 h-10 mr-2 rounded-full">
-            <div class="flex flex-col text-left">
-                <span class="">Pindle Instructions</span>
-                <span class="text-sm text-neutral-500 dark:text-neutral-400">Learn how to play with these instructions to help.</span>
-            </div>
+        <div class="px-5">
+            <button preventInteraction onclick={instructionsF} bind:this={instructionsB} class="transition-colors duration-150 ease-in-out border-b-1 border-neutral-500/50 px-2 py-3 mt-4 bg-neutral-300/50 dark:bg-neutral-700/50  flex flex-row w-full items-center android-unlock android-unlock-notifications">
+                <img src="favicon.svg" alt="Pindle Icon" class="w-10 h-10 mr-2 rounded-full">
+                <span class="flex flex-col text-left">
+                    <span class="">Pindle Instructions</span>
+                    <span class="text-sm text-neutral-500 dark:text-neutral-400">Learn how to play with these instructions to help.</span>
+                </span>
+            </button>
+            <button preventInteraction onclick={() => null} class="transition-colors duration-150 ease-in-out px-2 py-3 bg-neutral-300/50 dark:bg-neutral-700/50  flex flex-row w-full items-center android-unlock android-unlock-notifications">
+                <img src="favicon.svg" alt="Pindle Icon" class="w-10 h-10 mr-2 rounded-full">
+                <span class="flex flex-col text-left">
+                    <span class="">Pindle Instructions</span>
+                    <span class="text-sm text-neutral-500 dark:text-neutral-400">Learn how to play with these instructions to help.</span>
+                </span>
+            </button>
         </div>
     </div>
     <div class="absolute bottom-16 text-sm text-neutral-800 dark:text-neutral-200 opacity-85 w-full text-center">
-        Swipe
-        <span class="hidden md:inline">(or click)</span>
-        to unlock
+        {#if statusMessage}
+            <span>{statusMessage}</span>
+        {:else}
+            Swipe
+            <span class="hidden md:inline">(or click)</span>
+            to unlock
+        {/if}
     </div>
     <div class="absolute bottom-6 w-full flex flex-row justify-between items-center px-6">
         <img src="favicon.svg" alt="Difficulty Selector" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-inactive">
-        <img src="/android/lock.png" alt="Android Default Avatar" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active invert dark:invert-0" onclick={click}>
+        <img src="/android/lock.png" alt="Android Default Avatar" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active invert dark:invert-0">
         <!--<img src="favicon.svg" alt="Android Default Avatar" class="h-6 aspect-square opacity-75"> for themes-->
         <div class="w-6"></div>
     </div>
