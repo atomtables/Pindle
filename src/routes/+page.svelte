@@ -9,8 +9,9 @@
     let gamescreen = $state({});
 </script>
 
-<div class="bg-neutral-200 dark:bg-neutral-800 w-screen h-dvh grid place-items-center select-none [-webkit-user-select:none]">
-    <div class="relative overflow-hidden w-full md:w-md mx-auto h-full md:h-auto md:aspect-9/16 md:shadow-glow md:shadow-black md:dark:shadow-white transition-all">
+<div class="w-screen h-dvh grid place-items-center select-none [-webkit-user-select:none]">
+    <div class="relative overflow-hidden bg-neutral-200/50 dark:bg-neutral-800/50 w-full md:w-md mx-auto h-full md:h-auto md:aspect-9/16 md:shadow-glow md:shadow-black md:dark:shadow-white transition-all">
+        <div class="-z-50 absolute top-0 right-0 w-full h-full bg-[url(/background.jpg)] bg-cover android-unlock android-unlock-background"></div>
         {#if !activated}
             {#if instructions}
                 <InstructionsScreen bind:instructions />

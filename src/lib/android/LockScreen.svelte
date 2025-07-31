@@ -10,6 +10,20 @@
             date = new Date();
         }, 1000);
         cursor.screenHeight = document.querySelector('.android-unlock-screen')?.parentElement?.clientHeight;
+        if (document.querySelector(".android-unlock-background").classList.contains("activate")) {
+            document.querySelector(".android-unlock-background").style.animationFillMode = "forwards";
+            document.querySelector(".android-unlock-background").style.animationDelay = '0s';
+            document.querySelector(".android-unlock-background").style.animationDirection = "reverse";
+            setTimeout(() => {
+                let el = document.querySelector(".android-unlock-background");
+                el.style.animationDirection = "";
+                el.style.animationDelay = "";
+                el.classList.remove("activate");
+                el.style.animation = "none";
+                void el.offsetWidth;
+                el.style.animation = "";
+            }, 1500);
+        }
         return () => {
             clearInterval(interval);
         };
@@ -21,9 +35,14 @@
         currentY: 0,
         screenHeight: 0
     })
+    const nextscreen = () => setTimeout(() => activated = true, 300 + 1000 * (parseFloat(document.querySelector(".android-unlock").style.animationDelay.replace('calc(', '').replace(')', '').replace('s', '')) || 0))
     function down(event) {
         if (event.type.includes('touch')) event.preventDefault();
         if (event.target.closest('button[preventInteraction]')) {
+            return;
+        }
+        if (event.target.closest('img[preventInteraction]')) {
+            event.preventDefault();
             return;
         }
         cursor.mousedown = true;
@@ -61,9 +80,7 @@
                     el.style.animationFillMode = 'forwards';
                     el.classList.add("activate");
                 });
-                const delay = document.querySelector(".android-unlock").style.animationDelay;
-                console.log(parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')) || 0)
-                setTimeout(() => activated = true, 300 + 1000 * (parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')) || 0))
+                nextscreen()
                 return
             }
         }
@@ -75,9 +92,7 @@
                     el.style.animationFillMode = 'forwards';
                     el.classList.add("activate");
                 });
-                const delay = document.querySelector(".android-unlock").style.animationDelay;
-                console.log(parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')))
-                setTimeout(() => activated = true, 300 + 1000*parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')))
+                nextscreen()
             } else {
                 document.querySelectorAll(".android-unlock").forEach(el => {
                     let val = el.style.animationDelay;
@@ -101,7 +116,7 @@
     let instructionsB = $state();
     function instructionsF(event) {
         if (!this.clickOnce) {
-            instructionsB.style.backgroundColor = "color-mix(in oklab, var(--color-neutral-600) 70%, transparent)";
+            instructionsB.style.backgroundColor = "color-mix(in oklab, var(--color-neutral-700) 100%, transparent)";
             instructionsB.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.16), 0 2px 4px rgba(0, 0, 0, 0.23)";
             statusMessage = "Tap again to open"
             this.clickOnce = true;
@@ -113,7 +128,10 @@
                 this.clickOnce = false;
             }, 1000);
         } else {
-            document.querySelectorAll(".android-unlock").forEach(el => el.classList.add("activate"))
+            document.querySelectorAll(".android-unlock").forEach(el => {
+                document.querySelector(".android-unlock-background").style.animationFillMode = "forwards";
+                el.classList.add("activate")
+            })
             setTimeout(() => {
                 instructions = true;
             }, 300)
@@ -137,7 +155,7 @@
     <div class="absolute top-48 w-full text-center">
         <div class="android-unlock android-unlock-clock">
             <div class="w-full text-center text-9xl font-thin">
-                {date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }).replace(/am|pm/gi, "").trim()}
+                PINDLE
             </div>
             <div class="w-full text-center">
                 {date.toLocaleDateString('en-us', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -162,7 +180,7 @@
     </div>
     <div class="absolute bottom-16 text-sm text-neutral-800 dark:text-neutral-200 opacity-85 w-full text-center">
         {#if statusMessage}
-            <span>{statusMessage}</span>
+            <i>{statusMessage}</i>
         {:else}
             Swipe
             <span class="hidden md:inline">(or click)</span>
@@ -170,7 +188,7 @@
         {/if}
     </div>
     <div class="absolute bottom-6 w-full flex flex-row justify-between items-center px-6">
-        <img src="favicon.svg" alt="Difficulty Selector" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-inactive">
+        <img preventInteraction src="favicon.svg" alt="Difficulty Selector" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-inactive">
         <img src="/android/lock.png" alt="Android Default Avatar" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active invert dark:invert-0">
         <!--<img src="favicon.svg" alt="Android Default Avatar" class="h-6 aspect-square opacity-75"> for themes-->
         <div class="w-6"></div>

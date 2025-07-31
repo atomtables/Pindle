@@ -118,6 +118,24 @@
         animation-duration: 1.5s;
         animation-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
     }
+
+    @keyframes android-unlock-background {
+        0% {
+            opacity: 1;
+        }
+        45% {
+            opacity: 0.4;
+        }
+        100% {
+            opacity: 0.4;
+        }
+    }
+    .android-unlock-background {
+        animation-name: android-unlock-background;
+        animation-duration: 1.5s;
+        /* quint in */
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
 }
 
 @theme {
