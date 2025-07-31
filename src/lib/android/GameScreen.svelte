@@ -14,6 +14,7 @@
     let showNum = $state({})
     let resolveNum = $state({});
     let input = $state("");
+    let exitPrompt = $state(false);
 
     let correctBeads = $state([]);
     let currentAttempt = $state(0);
@@ -23,6 +24,16 @@
         (difficulty === 'medium' && input.length >= 6) ||
         (difficulty === 'hard' && input.length >= 8));
     const onkeydown = e => {
+        if (e.key === 'Backspace') {
+            if (input.length > 0) {
+                input = input.slice(0, -1);
+                showNum[input.length] = new Promise(resolve => {
+                    resolveNum[input.length] = resolve;
+                    resolveNum[input.length + 1]?.();
+                });
+            }
+            return
+        }
         if (e.key >= '0' && e.key <= '9') {
             const index = Number(e.key);
             const el = document.querySelector(`.android-pin-number:nth-child(${index > 0 ? index : 11})`);
@@ -304,7 +315,30 @@
                  src="/android/done.png">
         </button>
     </div>
-    <button class="rounded-full text-sm text-neutral-700 dark:text-neutral-300 mb-3 cursor-pointer hover:bg-neutral-200 active:bg-neutral-300 dark:hover:bg-neutral-700 dark:active:bg-neutral-600 transition-all w-max mx-auto p-2" in:fly={{y: 40, delay: 300}} out:fly={{y: -100, delay: 300, opacity: 0, easing: quintIn}}>
+    <button onclick={() => exitPrompt = true} class="rounded-full text-sm text-neutral-700 dark:text-neutral-300 mb-3 cursor-pointer hover:bg-neutral-200 active:bg-neutral-300 dark:hover:bg-neutral-700 dark:active:bg-neutral-600 transition-all w-max mx-auto p-2" in:fly={{y: 40, delay: 300}} out:fly={{y: -100, delay: 300, opacity: 0, easing: quintIn}}>
         Emergency Quit
     </button>
 </div>
+
+{#if exitPrompt}
+    <div class="absolute w-full h-full flex items-center px-5 bg-neutral-200/50 dark:bg-neutral-900/50">
+        <div class="bg-neutral-300 dark:bg-neutral-700 w-full px-4 pt-4 pb-2">
+            <div class="text-xl mb-2 font-bold">
+                Are you sure you want to quit?
+            </div>
+            <div class="text-sm mb-5">
+                You will lose your progress and have to restart the game.
+            </div>
+            <div class="flex flex-row justify-end items-end">
+                <button onclick={() => exitPrompt = false} class="cursor-pointer bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400/50 dark:hover:bg-neutral-600 active:bg-neutral-500/50 dark:active:bg-neutral-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
+                    <img src="/android/play.svg" alt="Continue" class="w-6 aspect-square mr-2 invert dark:invert-0">
+                    <span class="text-sm">Continue</span>
+                </button>
+                <button class="cursor-pointer bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400/50 dark:hover:bg-neutral-600 active:bg-neutral-500/50 dark:active:bg-neutral-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
+                    <img src="/android/close.svg" alt="Restart" class="w-6 aspect-square mr-2 invert dark:invert-0">
+                    <span class="text-sm">Quit</span>
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}

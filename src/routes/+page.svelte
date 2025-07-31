@@ -7,7 +7,7 @@
     let gamescreen = $state({});
 </script>
 
-<div class="w-svw h-svh grid place-items-center select-none [-webkit-user-select:none]">
+<div class="w-screen h-dvh pb-[env(safe-area-inset-bottom)] grid place-items-center select-none [-webkit-user-select:none]">
     <div class="relative overflow-hidden w-full md:w-md mx-auto h-full md:h-auto md:aspect-9/16 md:shadow-glow md:shadow-black md:dark:shadow-white transition-all">
         {#if !activated}
             <LockScreen bind:activated={activated}/>

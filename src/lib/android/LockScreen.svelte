@@ -50,6 +50,17 @@
         if (event.type.includes('touch')) event.preventDefault();
         const percent = -(cursor.currentY - cursor.initialY) / cursor.screenHeight;
 
+        if (cursor.currentY === cursor.initialY && window.matchMedia("(min-width: 768px)").matches) {
+            document.querySelectorAll(".android-unlock").forEach(el => {
+                el.style.animationFillMode = 'forwards';
+                el.classList.add("activate");
+            });
+            const delay = document.querySelector(".android-unlock").style.animationDelay;
+            console.log(parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')) || 0)
+            setTimeout(() => activated = true, 300 + 1000*(parseFloat(delay.replace('calc(', '').replace(')', '').replace('s', '')) || 0))
+            return
+        }
+
         if (cursor.mousedown) {
             cursor.mousedown = false;
             if (percent >= 0.35) {
@@ -82,7 +93,7 @@
 
 <svelte:window on:mousedown={down} on:mousemove={move} on:mouseup={up} on:touchstart|nonpassive={down} on:touchmove|nonpassive={move} on:touchend|nonpassive={up} />
 
-<div class="android-unlock android-unlock-screen" in:fade|global={{delay: 300}}>
+<div class="android-unlock android-unlock-screen" in:fade|global>
     <div class="absolute top-4 left-4">
         <b>Pindle</b>: Crack the PIN code
     </div>
@@ -111,11 +122,13 @@
         </div>
     </div>
     <div class="absolute bottom-16 text-sm text-neutral-800 dark:text-neutral-200 opacity-85 w-full text-center">
-        Swipe to unlock
+        Swipe
+        <span class="hidden md:inline">(or click)</span>
+        to unlock
     </div>
     <div class="absolute bottom-6 w-full flex flex-row justify-between items-center px-6">
         <img src="favicon.svg" alt="Difficulty Selector" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-inactive">
-        <img src="/android/lock.png" alt="Android Default Avatar" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active invert dark:invert-0">
+        <img src="/android/lock.png" alt="Android Default Avatar" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active invert dark:invert-0" onclick={click}>
         <!--<img src="favicon.svg" alt="Android Default Avatar" class="h-6 aspect-square opacity-75"> for themes-->
         <div class="w-6"></div>
     </div>

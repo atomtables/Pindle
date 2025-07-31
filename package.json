@@ -9,6 +9,11 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''"
 	},
+	"browserslist": [
+		"last 3 versions",
+		"Safari >= 9",
+		"es2015"
+	],
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^3.0.8",
 		"@sveltejs/kit": "^2.22.0",

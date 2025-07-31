@@ -7,6 +7,11 @@
         color-scheme: light dark;
     }
 
+    body {
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-top: env(safe-area-inset-top);
+    }
+
     * {
         font-family: 'Roboto', sans-serif;
     }
