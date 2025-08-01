@@ -14,7 +14,7 @@
 
 <div class="w-screen h-dvh grid place-items-center select-none [-webkit-user-select:none] ">
     <div class="relative parent overflow-hidden w-full md:w-md mx-auto h-full md:h-auto md:aspect-9/16 md:shadow-glow md:shadow-black md:dark:shadow-white bg-neutral-800/50 transition-all">
-        <div class="-z-2 absolute top-0 right-0 w-full h-full bg-[url(/background.jpg)] bg-cover android-unlock android-unlock-background"></div>
+        <div class="-z-2 absolute top-0 right-0 w-full h-full bg-[url(/background.webp)] bg-cover android-unlock android-unlock-background"></div>
         {#if !activated}
             {#if instructions}
                 <InstructionsScreen bind:instructions />
