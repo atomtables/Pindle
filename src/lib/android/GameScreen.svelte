@@ -205,11 +205,11 @@
 
 <div class="absolute bottom-0 flex flex-col w-full text-center py-2">
     {#if correctBeads.length > 0}
-        <div class="text-xs text-neutral-400" in:fly={{y: 40}} out:fly|global={{y: -100, delay: 0, opacity: 0, easing: quintIn}}>
-            {shownAttempt}/{currentAttempt}
+        <div class="text-sm text-neutral-400" in:fly={{y: 40}} out:fly|global={{y: -100, delay: 0, opacity: 0, easing: quintIn}}>
+            {shownAttempt}/{currentAttempt} • {shownAttempt > 0 ? correctBeads[shownAttempt - 1][0] : ''}
         </div>
         <div class="flex flex-row items-center justify-center" in:fly={{y: 40, delay: 50}} out:fly|global={{y: -100, delay: 0, opacity: 0, easing: quintIn}}>
-            <button class="h-12 w-12 grid place-items-center rounded-full ease-linear duration-75 disabled:opacity-60 disabled:cursor-not-allowed not-disabled:hover:bg-neutral-400/50 not-disabled:hover:dark:bg-neutral-700/50 not-disabled:active:bg-neutral-500/50 not-disabled:dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => shownAttempt--} disabled={shownAttempt <= 1}>
+            <button class="h-10 w-10 grid place-items-center rounded-full ease-linear duration-75 disabled:opacity-60 disabled:cursor-not-allowed not-disabled:hover:bg-neutral-400/50 not-disabled:hover:dark:bg-neutral-700/50 not-disabled:active:bg-neutral-500/50 not-disabled:dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => shownAttempt--} disabled={shownAttempt <= 1}>
                 <img alt="backward" class="h-5 right-1" src="/android/back.svg" />
             </button>
             <div class="flex flex-col items-center justify-between h-4">
@@ -233,7 +233,7 @@
                     </div>
                 {/each}
             </div>
-            <button class="h-12 w-12 grid place-items-center rounded-full ease-linear duration-75 disabled:opacity-60 disabled:cursor-not-allowed not-disabled:hover:bg-neutral-400/50 not-disabled:hover:dark:bg-neutral-700/50 not-disabled:active:bg-neutral-500/50 not-disabled:dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => shownAttempt--} disabled={shownAttempt <= 1}>
+            <button class="h-10 w-10 grid place-items-center rounded-full ease-linear duration-75 disabled:opacity-60 disabled:cursor-not-allowed not-disabled:hover:bg-neutral-400/50 not-disabled:hover:dark:bg-neutral-700/50 not-disabled:active:bg-neutral-500/50 not-disabled:dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => shownAttempt++} disabled={shownAttempt >= currentAttempt}>
                 <img alt="forward" class="h-5 right-1 " src="/android/forward.svg">
             </button>
         </div>

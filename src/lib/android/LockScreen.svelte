@@ -74,6 +74,16 @@
                 appleftT.style.height = "225px"
                 statusMessage = "Swipe left to modify settings"
                 setTimeout(() => appleftT.classList.remove("transition-all", "duration-300"), 50)
+                cursor.deactivateIt = setTimeout(() => {
+                    if (!cursor.nearIt) {
+                        appleftT.style.width = ``
+                        appleftT.style.height = ``
+                        statusMessage = "";
+                        appleftT.classList.add("transition-all", "duration-300")
+                    }
+                    cursor.deactivateIt = null;
+                    cursor.auxClickedOnce = false;
+                }, 1000)
                 return;
             }
         }

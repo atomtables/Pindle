@@ -38,7 +38,7 @@
                 </div>
             {:else}
                 <div>
-                    <div class="font-thin text-7xl xs:text-8xl text-green-500">
+                    <div class="font-thin text-7xl xs:text-8xl text-red-500">
                         Failure...
                     </div>
                     <div class="px-1 font-light text-2xl">
