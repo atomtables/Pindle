@@ -14,9 +14,9 @@
 </script>
 
 {#if !animateAway}
-    <div class="w-full h-full p-2 pb-[env(safe-area-inset-bottom)] md:pb-2 flex flex-col justify-between" in:fly|global={{y: "100%"}} out:fly|global={{y: "-100%"}} onoutroend={() => setTimeout(onoutroend, 200)}>
-        <div>
-            <div class="font-thin text-6xl pt-2">
+    <div class="w-full h-full p-2 pb-[env(safe-area-inset-bottom)] md:pb-2 flex flex-col justify-between text-neutral-100 overflow-y-scroll" in:fly|global={{y: "100%"}} out:fly|global={{y: "-100%"}} onoutroend={() => setTimeout(onoutroend, 200)}>
+        <div class="pb-2">
+            <div class="font-thin text-5xl xs:text-6xl pt-2">
                 Instructions
             </div>
             <p class="px-1 pt-2 text-xl">
@@ -61,9 +61,9 @@
         </div>
         <div class="flex flex-col space-y-2">
             <!--suppress CommaExpressionJS -->
-            <button onclick={() => (animateAway = true, onoutroend = () => instructions = false)} class="cursor-pointer bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400 dark:hover:bg-neutral-600 active:bg-neutral-500 dark:active:bg-neutral-500 transition-colors p-2 w-full text-left uppercase font-bold flex flex-row items-center">
-                <img src="/android/close.svg" alt="Close" class="w-8 aspect-square mr-2">
-                <span class="mt-0.5">Close</span>
+            <button onclick={() => (animateAway = true, onoutroend = () => instructions = false)} class="cursor-pointer bg-neutral-300 mb-2 dark:bg-neutral-700 hover:bg-neutral-400 dark:hover:bg-neutral-600 active:bg-neutral-500 dark:active:bg-neutral-500 transition-colors p-2 w-full text-left uppercase font-bold flex flex-row items-center">
+                <img src="/android/close.svg" alt="Close" class="w-8 aspect-square mr-2 invert dark:invert-0">
+                <span class="mt-0.5 text-neutral-900 dark:text-neutral-100">Close</span>
             </button>
         </div>
     </div>

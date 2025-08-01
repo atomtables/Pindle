@@ -3,15 +3,18 @@
     import GameScreen from "$lib/android/GameScreen.svelte";
     import ResultScreen from "$lib/android/ResultScreen.svelte";
     import InstructionsScreen from "$lib/android/InstructionsScreen.svelte";
+    import {onMount} from "svelte";
 
     let activated = $state(false);
     let instructions = $state(false);
     let gamescreen = $state({});
+
+    onMount(() => window.scroll(0, 1))
 </script>
 
-<div class="w-screen h-dvh grid place-items-center select-none [-webkit-user-select:none]">
-    <div class="relative parent overflow-hidden bg-neutral-200/60 dark:bg-neutral-800/60 w-full md:w-md mx-auto h-full md:h-auto md:aspect-9/16 md:shadow-glow md:shadow-black md:dark:shadow-white transition-all">
-        <div class="-z-50 absolute top-0 right-0 w-full h-full bg-[url(/background.jpg)] bg-cover android-unlock android-unlock-background"></div>
+<div class="w-screen h-dvh grid place-items-center select-none [-webkit-user-select:none] ">
+    <div class="relative parent overflow-hidden w-full md:w-md mx-auto h-full md:h-auto md:aspect-9/16 md:shadow-glow md:shadow-black md:dark:shadow-white bg-neutral-800/50 transition-all">
+        <div class="-z-2 absolute top-0 right-0 w-full h-full bg-[url(/background.jpg)] bg-cover android-unlock android-unlock-background"></div>
         {#if !activated}
             {#if instructions}
                 <InstructionsScreen bind:instructions />
