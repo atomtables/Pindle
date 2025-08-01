@@ -23,7 +23,7 @@
                 el.style.animation = "none";
                 void el.offsetWidth;
                 el.style.animation = "";
-            }, 1500);
+            }, 500);
         }
         return () => {
             clearInterval(interval);
@@ -44,7 +44,8 @@
         screenHeight: 0,
         nearIt: false,
         deactivateIt: null,
-        auxExit: null
+        auxExit: null,
+        auxClickedOnce: false,
     })
 
     let draggedElement = null;
@@ -121,11 +122,12 @@
             cursor.nearIt = false;
 
             console.log(appleftT.style.width.replace('px', ''), parseFloat(appleftT.style.width.replace('px', '')))
-            if (parseFloat(appleftT.style.width.replace('px', '')) > 900) {
+            if (parseFloat(appleftT.style.width.replace('px', '')) > 900 || cursor.auxClickedOnce) {
                 console.log("triggered")
-                appleftT.style.width = "2000px";
-                appleftT.style.height = "2000px";
+                appleftT.style.width = "2500px";
+                appleftT.style.height = "2500px";
                 clearTimeout(cursor.deactivateIt)
+                document.querySelector(".android-unlock-background").style.animationFillMode = "forwards";
                 cursor.auxExit = () => instructions = true;
                 cursor.deactivateIt = null
                 console.log("auxExit", cursor.auxExit)
@@ -142,7 +144,9 @@
                         appleftT.classList.add("transition-all", "duration-300")
                     }
                     cursor.deactivateIt = null;
+                    cursor.auxClickedOnce = false;
                 }, 1000)
+                cursor.auxClickedOnce = true;
             }
             return;
         }
@@ -192,7 +196,12 @@
 
     function instructionsF(event) {
         if (!this.clickOnce) {
-            instructionsB.style.backgroundColor = "color-mix(in oklab, var(--color-neutral-700) 100%, transparent)";
+            // dark mode
+            if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                instructionsB.style.backgroundColor = "color-mix(in oklab, var(--color-neutral-700) 100%, transparent)";
+            } else {
+                instructionsB.style.backgroundColor = "color-mix(in oklab, var(--color-neutral-300) 100%, transparent)";
+            }
             instructionsB.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.16), 0 2px 4px rgba(0, 0, 0, 0.23)";
             statusMessage = "Tap again to open"
             this.clickOnce = true;
@@ -208,81 +217,87 @@
                 document.querySelector(".android-unlock-background").style.animationFillMode = "forwards";
                 el.classList.add("activate")
             })
-            setTimeout(() => {
-                instructions = true;
-            }, 300)
+            cursor.auxExit = () => instructions = true
         }
     }
 </script>
 
 <svelte:window on:mousedown={down} on:mousemove={move} on:mouseup={up} on:touchend|nonpassive={up}
-               on:touchmove|nonpassive={move} on:touchstart|nonpassive={down} />
+               on:touchmove|nonpassive={move} on:touchstart|nonpassive={down}/>
 
 {#if !cursor.auxExit}
-    <div class="relative h-full" in:fly|global={{y: "100%"}} out:fade|global={{duration: 500}}
-         onoutroend={() => cursor.auxExit()}>
+    <div class="relative h-full pt-2 xs:p-0" in:fly|global={{y: "100%"}} out:fade|global={{duration: 500}}
+         onoutrostart={() => document.querySelector(".android-unlock-background").classList.add("activate")}
+         onoutroend={() => cursor.auxExit?.()}>
         <div class="h-full android-unlock android-unlock-screen">
-            <div class="absolute top-4 left-4">
-                <b>an atomtables game</b>: Credits
+            <div class="absolute top-4 left-4 text-neutral-100">
+                <b>an atomtables game</b><span class="hidden xs:inline">: Credits</span>
             </div>
             <div class="absolute top-3 right-3 flex flex-row-reverse items-center">
                 <img src="/android/avatar.png" alt="Android Default Avatar" class="w-8 h-8">
                 <img src="/android/battery.png" alt="Android Default Avatar"
-                     class="h-5 aspect-square ml-1 invert dark:invert-0">
+                     class="h-5 aspect-square ml-1">
                 <img src="/android/cellular.png" alt="Android Default Avatar"
-                     class="h-5 aspect-square ml-1 invert dark:invert-0">
+                     class="h-5 aspect-square ml-1">
                 <img src="/android/wifi.png" alt="Android Default Avatar"
-                     class="h-5 aspect-square ml-1 invert dark:invert-0">
+                     class="h-5 aspect-square ml-1">
                 <img src="/android/bluetooth.png" alt="Android Default Avatar"
-                     class="h-5 aspect-square ml-1 invert dark:invert-0">
+                     class="h-5 aspect-square ml-1">
             </div>
-            <div class="absolute top-48 w-full text-center">
+            <div class="absolute top-32 xs:top-48 w-full text-center">
                 <div class="android-unlock android-unlock-clock">
-                    <div class="w-full text-center text-9xl font-thin">
+                    <div class="w-full text-center text-8xl xs:text-9xl font-thin text-neutral-100">
                         PINdle
                     </div>
-                    <div class="w-full text-center">
+                    <div class="w-full text-center text-neutral-100">
                         {date.toLocaleDateString('en-us', {weekday: 'long', month: 'long', day: 'numeric'})}
                     </div>
                 </div>
-                <div class="px-5">
-                    <button preventInteraction onclick={instructionsF} bind:this={instructionsB}
-                            class="transition-colors duration-150 ease-in-out border-b-1 border-neutral-500/50 px-2 py-3 mt-4 bg-neutral-300/50 dark:bg-neutral-700/50  flex flex-row w-full items-center android-unlock android-unlock-notifications">
+                <div class="px-5 z-0">
+                    <button preventInteraction onclick={instructionsF} ontouchend={instructionsF} bind:this={instructionsB}
+                            class="z-0 transition-colors duration-150 ease-in-out border-b-1 border-neutral-500/50 px-2 py-3 mt-4 bg-neutral-300/80 dark:bg-neutral-700/60  flex flex-row w-full items-center android-unlock android-unlock-notifications">
                         <img src="favicon.svg" alt="Pindle Icon" class="w-10 h-10 mr-2 rounded-full">
                         <span class="flex flex-col text-left">
-                    <span class="">Pindle Instructions</span>
-                    <span class="text-sm text-neutral-500 dark:text-neutral-400">Learn how to play with these instructions to help.</span>
-                </span>
+                            <span class="">Pindle Instructions</span>
+                            <span class="text-sm text-neutral-600 dark:text-neutral-400">Learn how to play with these instructions to help.</span>
+                        </span>
                     </button>
-                    <button preventInteraction onclick={() => null}
-                            class="transition-colors duration-150 ease-in-out px-2 py-3 bg-neutral-300/50 dark:bg-neutral-700/50  flex flex-row w-full items-center android-unlock android-unlock-notifications">
-                        <img src="favicon.svg" alt="Pindle Icon" class="w-10 h-10 mr-2 rounded-full">
-                        <span class="flex flex-col text-left">
-                    <span class="">Pindle Instructions</span>
-                    <span class="text-sm text-neutral-500 dark:text-neutral-400">Learn how to play with these instructions to help.</span>
-                </span>
-                    </button>
+                    <!--                    <button preventInteraction onclick={() => null}-->
+                    <!--                            class="transition-colors duration-150 ease-in-out px-2 py-3 bg-neutral-300/60 dark:bg-neutral-700/60  flex flex-row w-full items-center android-unlock android-unlock-notifications">-->
+                    <!--                        <img src="favicon.svg" alt="Pindle Icon" class="w-10 h-10 mr-2 rounded-full">-->
+                    <!--                        <span class="flex flex-col text-left">-->
+                    <!--                            <span class="">Pindle Instructions</span>-->
+                    <!--                            <span class="text-sm text-neutral-500 dark:text-neutral-400">Learn how to play with these instructions to help.</span>-->
+                    <!--                        </span>-->
+                    <!--                    </button>-->
                 </div>
             </div>
-            <div class="absolute bottom-16 text-sm text-neutral-800 dark:text-neutral-200 opacity-85 w-full text-center">
+            <div class="absolute bottom-16 text-sm text-neutral-200 opacity-85 w-full text-center z-50">
                 {#if statusMessage}
                     <i>{statusMessage}</i>
                 {:else}
-                    Swipe
-                    <span class="hidden md:inline">(or click)</span>
-                    to unlock
+                    <div class="flex flex-col justify-center">
+                        <span>Swipe <span class="hidden md:inline">(or click)</span> to start</span>
+                        <span class="text-xs">Swipe left <span class="hidden md:inline">(or double-click left)</span> to modify settings</span>
+                    </div>
                 {/if}
             </div>
-            <div class="absolute bottom-6 w-full flex flex-row justify-between items-center px-6">
+            <div class="z-50 absolute bottom-6 w-full flex flex-row justify-between items-center px-6">
                 <img preventInteraction src="favicon.svg" alt="Difficulty Selector"
-                     class="z-5 h-6 aspect-square opacity-75 android-unlock android-unlock-icons-inactive">
+                     class="z-51 h-6 aspect-square opacity-75 android-unlock android-unlock-icons-inactive">
                 <img src="/android/lock.png" alt="Android Default Avatar"
-                     class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active invert dark:invert-0">
+                     class="{cursor.nearIt && 'z-50'} h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active">
                 <!--<img src="favicon.svg" alt="Android Default Avatar" class="h-6 aspect-square opacity-75"> for themes-->
                 <div class="w-6"></div>
             </div>
-                    </div>
+        </div>
     </div>
 {/if}
-<div bind:this={appleftT} out:fade|global={{easing: quintOut, duration: 300}} onoutrostart={() => document.querySelector(".android-unlock-background").classList.add("activate")}
-     class="absolute -bottom-2 -left-2 transform -translate-x-1/2 translate-y-1/2 w-2 h-2 transition-all duration-300 bg-neutral-50 rounded-full"></div>
+<div bind:this={appleftT}
+     class="z-40 absolute -bottom-2 -left-2 transform -translate-x-1/2 translate-y-1/2 w-2 h-2 transition-all duration-300 bg-neutral-50 rounded-full"
+     out:fade|global={{easing: quintOut, duration: 300}}></div>
+{#if cursor.nearIt || cursor.deactivateIt}
+    <img src="favicon.svg" alt="Android Default Avatar"
+         transition:fade|global={{duration: 500, easing: quintOut}}
+         class="z-50 absolute bottom-6 left-6 h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active">
+{/if}
