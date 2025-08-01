@@ -1,7 +1,7 @@
 <script>
     import {onMount} from "svelte";
     import {fade, fly} from "svelte/transition";
-    import {quintOut} from "svelte/easing";
+    import {cubicOut, quintOut} from "svelte/easing";
 
     let {activated = $bindable(), instructions = $bindable()} = $props();
 
@@ -25,10 +25,41 @@
                 el.style.animation = "";
             }, 500);
         }
+        activated = {
+            difficulty: 0,
+            gamemode: 0,
+        }
         return () => {
             clearInterval(interval);
         };
     });
+
+    const difficultyS = $derived.by(() => {
+        switch (activated.difficulty) {
+            case 0:
+                return "easy";
+            case 1:
+                return "medium";
+            case 2:
+                return "hard";
+            case 3:
+                return "impossible";
+            default:
+                return "Unknown";
+        }
+    })
+    const gamemodeS = $derived.by(() => {
+        switch (activated.gamemode) {
+            case 0:
+                return "normal";
+            case 1:
+                return "trycount";
+            case 2:
+                return "minute";
+            default:
+                return "Unknown";
+        }
+    })
 
     const isNearElement = (x, y, element, distance) => {
         const rect = element.getBoundingClientRect();
@@ -51,11 +82,11 @@
     let draggedElement = null;
     let appleftT = $state();
 
-    const nextscreen = () => setTimeout(() => activated = true, 300 + 1000 * (parseFloat(document.querySelector(".android-unlock").style.animationDelay.replace('calc(', '').replace(')', '').replace('s', '')) || 0))
+    const nextscreen = () => setTimeout(() => activated.go = true, 300 + 1000 * (parseFloat(document.querySelector(".android-unlock").style.animationDelay.replace('calc(', '').replace(')', '').replace('s', '')) || 0))
 
     function down(event) {
         if (event.type.includes('touch')) event.preventDefault();
-        if (event.target.closest('button[preventInteraction]')) {
+        if (event.target.closest('button[preventInteraction]') || event.target.closest('div[preventInteraction]')) {
             return;
         }
         if (event.target.closest('img[preventInteraction]')) {
@@ -72,7 +103,7 @@
                 draggedElement = img;
                 appleftT.style.width = `225px`
                 appleftT.style.height = "225px"
-                statusMessage = "Swipe left to modify settings"
+                statusMessage = "Swipe left to view instructions"
                 setTimeout(() => appleftT.classList.remove("transition-all", "duration-300"), 50)
                 cursor.deactivateIt = setTimeout(() => {
                     if (!cursor.nearIt) {
@@ -160,7 +191,7 @@
             }
             return;
         }
-        if (event.target.closest('button[preventInteraction]')) {
+        if (event.target.closest('button[preventInteraction]') || event.target.closest('div[preventInteraction]')) {
             return;
         }
         if (cursor.currentY === cursor.initialY) {
@@ -203,6 +234,7 @@
 
     let statusMessage = $state("");
     let instructionsB = $state();
+    let settingsPrompt = $state(false);
 
     function instructionsF(event) {
         if (!this.clickOnce) {
@@ -223,17 +255,81 @@
                 this.clickOnce = false;
             }, 1000);
         } else {
-            document.querySelectorAll(".android-unlock").forEach(el => {
-                document.querySelector(".android-unlock-background").style.animationFillMode = "forwards";
-                el.classList.add("activate")
-            })
-            cursor.auxExit = () => instructions = true
+            console.log("instructionsF", instructionsF)
+            settingsPrompt = true;
         }
     }
+    let difficulty = $state(0);
+    let gamemode = $state(0);
 </script>
 
 <svelte:window on:mousedown={down} on:mousemove={move} on:mouseup={up} on:touchend|nonpassive={up}
                on:touchmove|nonpassive={move} on:touchstart|nonpassive={down}/>
+
+{#if settingsPrompt}
+    <div preventInteraction class="absolute w-full h-full flex items-center px-5 backdrop-blur-xs z-500" transition:fade={{duration: 200, easing: cubicOut}}>
+        <div class="bg-neutral-200 dark:bg-neutral-700 w-full px-4 pt-4 pb-2" transition:fly={{y: 40, duration: 200, easing: cubicOut}}>
+            <div class="text-xl mb-2 font-bold">
+                Difficulty and Mode
+            </div>
+            <div class="text-sm mb-5 space-y-2">
+                <div class="flex flex-row items-start space-x-2">
+                    <div class="mt-1.5">Difficulty:</div>
+                    <div class="flex flex-col w-full">
+                        <div class="flex flex-row justify-evenly bg-neutral-200 dark:bg-neutral-800 border-2 border-neutral-500 dark:border-neutral-500 rounded-lg overflow-hidden *:p-1 *:transition-all *:cursor-pointer divide-x divide-white">
+                            <button onclick={() => difficulty = 0} class="flex-1 {difficulty === 0 ? 'bg-neutral-300 dark:bg-neutral-700 text-black dark:text-white' : 'text-neutral-700 dark:text-neutral-300'}">Easy</button>
+                            <button onclick={() => difficulty = 1} class="flex-1 {difficulty === 1 ? 'bg-neutral-300 dark:bg-neutral-700 text-black dark:text-white' : 'text-neutral-700 dark:text-neutral-300'}">Medium</button>
+                            <button onclick={() => difficulty = 2} class="flex-1 {difficulty === 2 ? 'bg-neutral-300 dark:bg-neutral-700 text-black dark:text-white' : 'text-neutral-700 dark:text-neutral-300'}">Hard</button>
+                            <button onclick={() => difficulty = 3} class="flex-1 {difficulty === 3 ? 'bg-neutral-300 dark:bg-neutral-700 text-black dark:text-white' : 'text-neutral-700 dark:text-neutral-300'}">Impossible</button>
+                        </div>
+                        <div class="text-xs text-neutral-700 dark:text-neutral-300 mt-1">
+                            {#if difficulty === 0}
+                                A random 4-digit PIN
+                            {:else if difficulty === 1}
+                                A random 6-digit PIN
+                            {:else if difficulty === 2}
+                                A random 8-digit PIN. This should be hard enough on its own.
+                            {:else if difficulty === 3}
+                                A random number of digits and a random PIN. Even if the digits appear to be in the correct location, you may not be correct...
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-row items-start space-x-2">
+                    <div class="mt-1.5">Gamemode:</div>
+                    <div class="flex flex-col w-full">
+                        <div class="flex flex-row justify-evenly bg-neutral-200 dark:bg-neutral-800 border-2 border-neutral-500 dark:border-neutral-500 rounded-lg overflow-hidden *:p-1 *:transition-all *:cursor-pointer divide-x divide-white">
+                            <button onclick={() => gamemode = 0} class="flex-1 {gamemode === 0 ? 'bg-neutral-300 dark:bg-neutral-700 text-black dark:text-white' : 'text-neutral-700 dark:text-neutral-300'}">Normal</button>
+                            <button onclick={() => gamemode = 1} class="flex-1 {gamemode === 1 ? 'bg-neutral-300 dark:bg-neutral-700 text-black dark:text-white' : 'text-neutral-700 dark:text-neutral-300'}">Trycount</button>
+                            <button onclick={() => gamemode = 2} class="flex-1 {gamemode === 2 ? 'bg-neutral-300 dark:bg-neutral-700 text-black dark:text-white' : 'text-neutral-700 dark:text-neutral-300'}">Minute</button>
+                        </div>
+                        <div class="text-xs text-neutral-700 dark:text-neutral-300 mt-1">
+                            {#if gamemode === 0}
+                                No limits, no expectations. You have the freedom you need. If you still need to quit, then maybe you should. It doesn't get easier than this.
+                            {:else if gamemode === 1}
+                                You have 10 tries to guess the PIN. 10 tries is all it takes. Losing on this gamemode is understandable. I get it.
+                            {:else if gamemode === 2}
+                                You have 1 minute. 1 minute to correctly guess the PIN. Trust me, there's a strategy, and randomly guessing is NOT the strategy.
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-row justify-end items-end space-x-2">
+                <!--suppress CommaExpressionJS -->
+                <button onclick={() => (difficulty = activated.difficulty, gamemode = activated.gamemode, settingsPrompt = false)} class="cursor-pointer bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300/50 dark:hover:bg-neutral-600 active:bg-neutral-400/50 dark:active:bg-neutral-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
+                    <img src="/android/close.svg" alt="Restart" class="w-6 aspect-square mr-1 invert dark:invert-0">
+                    <span class="text-sm mr-2">Cancel</span>
+                </button>
+                <!--suppress CommaExpressionJS -->
+                <button onclick={() => (activated.difficulty = difficulty, activated.gamemode = gamemode, settingsPrompt = false)} class="cursor-pointer bg-amber-300 dark:bg-amber-700 hover:bg-amber-400/50 dark:hover:bg-amber-600 active:bg-amber-500/50 dark:active:bg-amber-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
+                    <img src="/android/play.svg" alt="Continue" class="w-6 aspect-square mr-1 invert dark:invert-0">
+                    <span class="text-sm mr-2">Set</span>
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
 
 {#if !cursor.auxExit}
     <div class="relative h-full pt-2 xs:p-0" in:fly|global={{y: "100%"}} out:fade|global={{duration: 500}}
@@ -287,8 +383,8 @@
                     <i>{statusMessage}</i>
                 {:else}
                     <div class="flex flex-col justify-center">
-                        <span>Swipe <span class="hidden md:inline">(or click)</span> to start</span>
-                        <span class="text-xs">Swipe left <span class="hidden md:inline">(or double-click left)</span> to modify settings</span>
+                        <span>Swipe <span class="hidden md:inline">(or click)</span> to start an <b>{difficultyS} {gamemodeS}</b> game</span>
+                        <span class="text-xs">Swipe left <span class="hidden md:inline">(or double-click left)</span> to view instructions</span>
                     </div>
                 {/if}
             </div>

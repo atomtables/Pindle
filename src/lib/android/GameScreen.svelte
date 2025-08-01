@@ -338,12 +338,12 @@
             </div>
             <div class="flex flex-row justify-end items-end space-x-2">
                 <button onclick={() => setTimeout(() => losebyquitting(), 50)} class="cursor-pointer bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300/50 dark:hover:bg-neutral-600 active:bg-neutral-400/50 dark:active:bg-neutral-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
-                    <img src="/android/close.svg" alt="Restart" class="w-6 aspect-square mr-2 invert dark:invert-0">
-                    <span class="text-sm">Quit</span>
+                    <img src="/android/close.svg" alt="Restart" class="w-6 aspect-square mr-1 invert dark:invert-0">
+                    <span class="text-sm mr-2">Quit</span>
                 </button>
                 <button onclick={() => exitPrompt = false} class="cursor-pointer bg-amber-300 dark:bg-amber-700 hover:bg-amber-400/50 dark:hover:bg-amber-600 active:bg-amber-500/50 dark:active:bg-amber-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
-                    <img src="/android/play.svg" alt="Continue" class="w-6 aspect-square mr-2 invert dark:invert-0">
-                    <span class="text-sm ">Continue</span>
+                    <img src="/android/play.svg" alt="Continue" class="w-6 aspect-square mr-1 invert dark:invert-0">
+                    <span class="text-sm mr-2">Continue</span>
                 </button>
             </div>
         </div>
