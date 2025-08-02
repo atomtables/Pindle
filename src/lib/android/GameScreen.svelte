@@ -12,7 +12,7 @@
     let answer = $state();
     let status = $state("Hello")
     let active = $state({});
-    let lockPin = (false);
+    let lockPin = $state(false);
     let isToUnlock = $state(false)
     let showNum = $state({})
     let resolveNum = ({});
@@ -101,7 +101,6 @@
     const showattempt = () => {
         let beads = [];
         let counter = new Counter(input);
-        console.log(counter);
         let inputs = counter.result;
         let answerdup = answer.split('');
         // get exact places
@@ -321,7 +320,7 @@
             <span class="font-light n">9</span>
             <span class="text-xs text-neutral-400">WXYZ</span>
         </button>
-        <button class="android-pin-number exclude opacity-0 !cursor-default" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}}></button>
+        <div class="android-pin-number exclude opacity-0 !cursor-default" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}}></div>
         <button class="android-pin-number" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}}>
             <span class="text-[7px] opacity-0">s</span>
             <span class="font-light n">0</span>
@@ -338,7 +337,7 @@
 </div>
 
 {#if exitPrompt}
-    <div class="absolute w-full h-full flex items-center px-5 bg-neutral-800/75" transition:fade={{duration: 200, easing: cubicOut}} onclick={() => exitPrompt = false}>
+    <div class="absolute w-full h-full flex items-center px-5 bg-neutral-800/75" transition:fade={{duration: 200, easing: cubicOut}} onclick={() => exitPrompt = false} onkeypress={e => e.key === 'Escape' && (exitPrompt = false)} role="dialog" tabindex="-1">
         <div class="bg-neutral-200 dark:bg-neutral-700 w-full px-4 pt-4 pb-2" transition:fly={{y: 40, duration: 200, easing: cubicOut}}>
             <div class="text-xl mb-2 font-bold">
                 Are you sure you want to quit?
