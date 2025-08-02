@@ -4,15 +4,18 @@
     import {flip} from "svelte/animate";
     import {cubicOut, quintIn} from "svelte/easing";
     import {Counter} from "$lib/gameplay/Counter.js"
+    import {RNG} from "$lib/gameplay/RNG.js";
+    import Constants from "$lib/gameplay/Constants.js";
 
-    let { difficulty, answer, next = $bindable() } = $props();
+    let { old: data, next = $bindable() } = $props();
 
+    let answer = $state();
     let status = $state("Hello")
     let active = $state({});
-    let lockPin = $state(false);
+    let lockPin = (false);
     let isToUnlock = $state(false)
     let showNum = $state({})
-    let resolveNum = $state({});
+    let resolveNum = ({});
     let input = $state("");
     let exitPrompt = $state(false);
 
@@ -20,19 +23,26 @@
     let currentAttempt = $state(0);
     let shownAttempt = $state(0);
 
-    const isFull = $derived((difficulty === 'easy' && input.length >= 4) ||
-        (difficulty === 'medium' && input.length >= 6) ||
-        (difficulty === 'hard' && input.length >= 8));
+    const isFull = $derived( Constants.reachedLimit(data.difficulty, input.length) );
+    $effect(() => { lockPin = isFull }) // i love you svelte developers
     const onkeydown = e => {
         if (e.key === 'Backspace') {
+            if (lockPin) return;
             if (input.length > 0) {
                 input = input.slice(0, -1);
-                showNum[input.length] = new Promise(resolve => {
-                    resolveNum[input.length] = resolve;
-                    resolveNum[input.length + 1]?.();
-                });
+                // idk what this does??? I WALK A LONELY ROAD THE ONLY ONE THAT I HAVE EVER KNOWN
+                // showNum[input.length] = new Promise(resolve => {
+                //     resolveNum[input.length] = resolve;
+                //     resolveNum[input.length + 1]?.();
+                // });
             }
             return
+        }
+        // enter key
+        if (e.key === "Enter") {
+            if (lockPin) return;
+            if (data.difficulty === Constants.difficultyId.impossible) submit();
+            return;
         }
         if (e.key >= '0' && e.key <= '9') {
             const index = Number(e.key);
@@ -45,56 +55,53 @@
                     el.classList.remove("bg-neutral-500/50");
                 }, 125);
             }
-            onpinclick(index);
+            onpinclick(e.key);
         } else if (e.key === 'Enter') {
         }
     };
-    const calculatetimeout = () => {
-        return 750
+
+    let timeoutExecutedOnce = false;
+    const submit = () => {
+        showattempt()
+        lockPin = true;
+        isToUnlock = true;
+        if (!timeoutExecutedOnce) timeoutExecutedOnce = setTimeout(() => {
+            if (input === answer) {
+                next = {
+                    complete: true,
+                    win: true,
+                    attempts: currentAttempt,
+                    tries: correctBeads
+                };
+            } else {
+                input = ""
+                isToUnlock = lockPin = false;
+                timeoutExecutedOnce = false;
+            }
+        }, Constants.attemptTimeout(input.length))
     }
     const onpinclick = e => {
         if (!e || lockPin) return;
         input += e;
+
+        if (isFull) submit()
+
         showNum[input.length - 1] = new Promise(resolve => {
             resolveNum[input.length - 1] = resolve;
             resolveNum[input.length - 2]?.();
             if (isFull) {
-                showattempt()
-                isToUnlock = true;
-                lockPin = true;
                 resolve()
+                return;
             }
             setTimeout(() => {
                 resolve();
             }, 1000);
         });
-
-        setTimeout(() => {
-            if (isFull) {
-                if (input === answer) {
-                    status = "Unlocked!";
-                    setTimeout(() => {
-                        next = {
-                            complete: true,
-                            win: true,
-                            attempts: currentAttempt,
-                            tries: correctBeads
-                        };
-                    }, 900);
-                } else {
-                    status = "Wrong PIN";
-                    setTimeout(() => input = "", 600)
-                    setTimeout(() => {
-                        isToUnlock = false;
-                        lockPin = false;
-                    }, 800)
-                }
-            }
-        }, calculatetimeout())
     };
     const showattempt = () => {
         let beads = [];
         let counter = new Counter(input);
+        console.log(counter);
         let inputs = counter.result;
         let answerdup = answer.split('');
         // get exact places
@@ -108,6 +115,7 @@
         for (let [k, v] of counter) {
             for (let j = 0; j < v; j++) {
                 if (answerdup.includes(k)) {
+                    answerdup[answerdup.indexOf(k)] = null;
                     beads.push(1);
                 } else {
                     beads.push(0);
@@ -161,6 +169,9 @@
     const [send, receive] = crossfade({});
 
     onMount(() => {
+        answer = new RNG(data.difficulty).get()
+        console.log(answer);
+
         isToUnlock = false;
         lockPin = false;
         input = "";
@@ -218,7 +229,7 @@
                         {#if shownAttempt - 1 === i}
                             <div class="flex flex-row items-center justify-center" transition:slide={{axis: 'y'}}>
                                 {#each beads as bead, j (j)}
-                                    <div in:fade|global={{duration: 300, delay: 150 * (j+1)}} class="flex items-center justify-center">
+                                    <div in:fade|global={{duration: 300, delay: 150 * (j + 1)}} class="flex items-center justify-center">
                                         {#if bead === 2}
                                             <img alt="Dot Fill" class="h-4 aspect-square w-8" src="/android/dotfill.svg" />
                                         {:else if bead === 1}
@@ -268,13 +279,13 @@
                         </div>
                     {/each}
                 </div>
-                <button class="absolute right-2 h-12 w-12 grid place-items-center rounded-full ease-linear duration-75 hover:bg-neutral-400/50 dark:hover:bg-neutral-700/50 active:bg-neutral-500/50 dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => input = input.slice(0, -1)} disabled={input.length <= 0}>
+                <button class="absolute right-2 h-12 w-12 grid place-items-center rounded-full ease-linear duration-75 hover:bg-neutral-400/50 dark:hover:bg-neutral-700/50 active:bg-neutral-500/50 dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => !lockPin && (input = input.slice(0, -1))} disabled={input.length <= 0 || lockPin}>
                     <img alt="backspace" class="h-5 right-1" src="/android/backspace.svg">
                 </button>
             </div>
         </div>
     </div>
-    <div class="*:android-pin-number grid grid-cols-3 grid-rows-3 *:flex *:flex-col *:rounded-full *:ease-linear *:duration-75 *:md:hover:bg-neutral-300/50 *:md:dark:hover:bg-neutral-700/50 *:md:active:bg-neutral-500/50 *:cursor-pointer *:transition-all *:webkit-transition-all *:transition-discrete *:items-center *:justify-center *:text-3xl *:text-neutral-200 px-10 pt-3 pb-3 *:p-3 *:xs:p-5">
+    <div class="*:android-pin-number grid grid-cols-3 grid-rows-3 *:flex *:flex-col *:rounded-full *:ease-linear *:duration-75 *:hover:bg-neutral-300/50 *:dark:hover:bg-neutral-700/50 *:active:bg-neutral-500/50 *:dark:active:bg-neutral-500/50 *:cursor-pointer *:transition-all *:webkit-transition-all *:transition-discrete *:items-center *:justify-center *:text-3xl *:text-neutral-200 px-10 pt-3 pb-3 *:p-3 *:xs:p-5">
         <button class="android-pin-number" in:fly={{y: 40, delay: 100}} out:fly={{y: -100, delay: 100, opacity: 0, easing: quintIn}}>
             <span class="font-light n">1</span>
             <span class="text-xs text-neutral-400 opacity-0">VOICE</span>
@@ -317,7 +328,7 @@
             <span class="font-light n">0</span>
             <span class="text-[7px] opacity-0">s</span>
         </button>
-        <button class="android-pin-number exclude {difficulty !== 'impossible' ? 'opacity-0 !cursor-default' : ''}" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}}>
+        <button class="android-pin-number exclude {data.difficulty !== Constants.difficultyId.impossible ? 'opacity-0 !cursor-default' : ''}" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}} onclick={() => submit()}>
             <img alt="Done" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active"
                  src="/android/done.png">
         </button>
@@ -328,7 +339,7 @@
 </div>
 
 {#if exitPrompt}
-    <div class="absolute w-full h-full flex items-center px-5 backdrop-blur-xs" transition:fade={{duration: 200, easing: cubicOut}} onclick={() => exitPrompt = false}>
+    <div class="absolute w-full h-full flex items-center px-5 bg-neutral-800/75" transition:fade={{duration: 200, easing: cubicOut}} onclick={() => exitPrompt = false}>
         <div class="bg-neutral-200 dark:bg-neutral-700 w-full px-4 pt-4 pb-2" transition:fly={{y: 40, duration: 200, easing: cubicOut}}>
             <div class="text-xl mb-2 font-bold">
                 Are you sure you want to quit?

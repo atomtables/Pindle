@@ -25,7 +25,7 @@
 </script>
 
 {#if !animateAway}
-    <div class="w-full h-full pb-2">
+    <div class="w-full h-full max-md:pb-2">
         <div class="w-full h-full p-2 pb-[env(safe-area-inset-bottom)] md:pb-2 flex flex-col justify-between text-neutral-100" in:fly|global={{y: "100%", delay: 900}} out:fly|global={{y: "-100%"}} onoutroend={() => onoutroend?.()}>
             {#if gamescreen.win}
                 <div>

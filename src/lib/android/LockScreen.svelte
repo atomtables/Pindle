@@ -2,6 +2,7 @@
     import {onMount} from "svelte";
     import {fade, fly} from "svelte/transition";
     import {cubicOut, quintOut} from "svelte/easing";
+    import Constants from "$lib/gameplay/Constants.js";
 
     let {activated = $bindable(), instructions = $bindable()} = $props();
 
@@ -34,32 +35,8 @@
         };
     });
 
-    const difficultyS = $derived.by(() => {
-        switch (activated.difficulty) {
-            case 0:
-                return "easy";
-            case 1:
-                return "medium";
-            case 2:
-                return "hard";
-            case 3:
-                return "impossible";
-            default:
-                return "Unknown";
-        }
-    })
-    const gamemodeS = $derived.by(() => {
-        switch (activated.gamemode) {
-            case 0:
-                return "normal";
-            case 1:
-                return "trycount";
-            case 2:
-                return "minute";
-            default:
-                return "Unknown";
-        }
-    })
+    const difficultyS = $derived(Constants.difficulty[activated.difficulty])
+    const gamemodeS = $derived(Constants.gamemode[activated.gamemode])
 
     const isNearElement = (x, y, element, distance) => {
         const rect = element.getBoundingClientRect();
@@ -85,10 +62,10 @@
     const nextscreen = () => setTimeout(() => activated.go = true, 300 + 1000 * (parseFloat(document.querySelector(".android-unlock").style.animationDelay.replace('calc(', '').replace(')', '').replace('s', '')) || 0))
 
     function down(event) {
-        if (event.type.includes('touch')) event.preventDefault();
         if (event.target.closest('button[preventInteraction]') || event.target.closest('div[preventInteraction]')) {
             return;
         }
+        if (event.type.includes('touch')) event.preventDefault();
         if (event.target.closest('img[preventInteraction]')) {
             event.preventDefault()
         }
@@ -123,7 +100,6 @@
         cursor.initialY = clientY;
         cursor.currentY = clientY;
     }
-
     function move(event) {
         let currentX;
         if (event.type.includes('touch')) {
@@ -153,8 +129,10 @@
             });
         }
     }
-
     function up(event) {
+        if (event.target.closest('button[preventInteraction]') || event.target.closest('div[preventInteraction]')) {
+            return;
+        }
         if (event.type.includes('touch')) event.preventDefault();
         const percent = -(cursor.currentY - cursor.initialY) / cursor.screenHeight;
         if (cursor.nearIt) {
@@ -189,9 +167,6 @@
                 }, 1000)
                 cursor.auxClickedOnce = true;
             }
-            return;
-        }
-        if (event.target.closest('button[preventInteraction]') || event.target.closest('div[preventInteraction]')) {
             return;
         }
         if (cursor.currentY === cursor.initialY) {
@@ -255,7 +230,7 @@
                 this.clickOnce = false;
             }, 1000);
         } else {
-            console.log("instructionsF", instructionsF)
+            statusMessage = "";
             settingsPrompt = true;
         }
     }
@@ -267,8 +242,8 @@
                on:touchmove|nonpassive={move} on:touchstart|nonpassive={down}/>
 
 {#if settingsPrompt}
-    <div preventInteraction class="absolute w-full h-full flex items-center px-5 backdrop-blur-xs z-500" transition:fade={{duration: 200, easing: cubicOut}}>
-        <div class="bg-neutral-200 dark:bg-neutral-700 w-full px-4 pt-4 pb-2" transition:fly={{y: 40, duration: 200, easing: cubicOut}}>
+    <div preventInteraction class="absolute w-full h-full flex items-center px-5 bg-neutral-800/75 z-500" in:fade={{duration: 200, easing: cubicOut}} out:fade={{duration: 400, easing: cubicOut}}>
+        <div class="bg-neutral-200 dark:bg-neutral-700 w-full px-4 pt-4 pb-2" in:fly={{y: 40, duration: 200, easing: cubicOut}} out:fly={{y: 40, duration: 400, easing: cubicOut}}>
             <div class="text-xl mb-2 font-bold">
                 Difficulty and Mode
             </div>
@@ -360,12 +335,12 @@
                     </div>
                 </div>
                 <div class="px-5 z-0">
-                    <button preventInteraction onclick={instructionsF} ontouchend={instructionsF} bind:this={instructionsB}
+                    <button preventInteraction onclick={instructionsF} bind:this={instructionsB}
                             class="z-0 transition-colors duration-150 ease-in-out border-b-1 border-neutral-500/50 px-2 py-3 mt-4 bg-neutral-300/80 dark:bg-neutral-700/60  flex flex-row w-full items-center android-unlock android-unlock-notifications">
                         <img src="favicon.svg" alt="Pindle Icon" class="w-10 h-10 mr-2 rounded-full">
                         <span class="flex flex-col text-left">
-                            <span class="">Pindle Instructions</span>
-                            <span class="text-sm text-neutral-600 dark:text-neutral-400">Learn how to play with these instructions to help.</span>
+                            <span class="">Change your difficulty</span>
+                            <span class="text-sm text-neutral-600 dark:text-neutral-400">Add a little challenge, maybe spice things up.</span>
                         </span>
                     </button>
                     <!--                    <button preventInteraction onclick={() => null}-->
