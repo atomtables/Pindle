@@ -48,6 +48,7 @@
                             Solved in <b>{gamescreen.attempts} attempts.</b>
                         {/if}
                     </div>
+                    <div class="font-bold px-1">The answer was {gamescreen.correct}...</div>
                 </div>
             {/if}
             <div class="h-96">

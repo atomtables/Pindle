@@ -2,16 +2,13 @@ export default {
     name: "Pindle",
     version: "1.0.0",
     length: {
-        easy: 4,
-        medium: 6,
-        hard: 8,
-        impossible: [4, 15] // min, max
+        0: 4,
+        1: 6,
+        2: 8,
+        3: [4, 15] // min, max
     },
     reachedLimit(diff: number, length: number): boolean {
-        return diff === 0 && this.length.easy <= length ||
-            diff === 1 && this.length.medium <= length ||
-            diff === 2 && this.length.hard <= length ||
-            diff === 3 && length > this.length.impossible[1];
+        return diff === 3 ? this.length.impossible[1] <= length : this.length[diff] <= length;
     },
     attemptTimeout: (length: number): number => (150 * length) + 400,
     difficulty: {
@@ -31,6 +28,16 @@ export default {
         1: "trycount",
         2: "minute"
     },
-    trycount: 10, // tries
+    gamemodeId: {
+        normal: 0,
+        trycount: 1,
+        minute: 2
+    },
+    trycount: {
+        0: 10,
+        1: 12,
+        2: 15,
+        3: 18
+    }, // tries
     minute: 1 // minute
 }

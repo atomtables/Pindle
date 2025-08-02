@@ -6,11 +6,12 @@
     import {Counter} from "$lib/gameplay/Counter.js"
     import {RNG} from "$lib/gameplay/RNG.js";
     import Constants from "$lib/gameplay/Constants.js";
+    import { fadescale, fadeslide } from "$lib/transitions";
 
     let { old: data, next = $bindable() } = $props();
 
     let answer = $state();
-    let status = $state("Hello")
+    let status = $state("")
     let active = $state({});
     let lockPin = $state(false);
     let isToUnlock = $state(false)
@@ -62,16 +63,37 @@
 
     let timeoutExecutedOnce = false;
     const submit = () => {
+        status = "";
+        for (let [attempt] of correctBeads) {
+            if (attempt === input) {
+                status = "You entered that again...";
+                break;
+            }
+        }
         showattempt()
         lockPin = true;
         isToUnlock = true;
         if (!timeoutExecutedOnce) timeoutExecutedOnce = setTimeout(() => {
+            if (data.gamemode === Constants.gamemodeId.trycount) {
+                if (currentAttempt >= Constants.trycount[data.difficulty]) {
+                    next = {
+                        complete: true,
+                        win: false,
+                        ranout: true,
+                        attempts: currentAttempt,
+                        tries: correctBeads,
+                        correct: answer
+                    };
+                    return;
+                }
+            }
             if (input === answer) {
                 next = {
                     complete: true,
                     win: true,
                     attempts: currentAttempt,
-                    tries: correctBeads
+                    tries: correctBeads,
+                    correct: answer
                 };
             } else {
                 input = ""
@@ -80,6 +102,7 @@
             }
         }, Constants.attemptTimeout(input.length))
     }
+
     const onpinclick = e => {
         if (!e || lockPin) return;
         input += e;
@@ -130,42 +153,12 @@
         win: false,
         quit: true,
         attempts: currentAttempt,
-        tries: correctBeads
+        tries: correctBeads,
+        correct: answer
     })
-
-    function fadescale(node, {delay = 0, duration = 300, easing = cubicOut, start = 0.8}) {
-        return {
-            delay,
-            duration,
-            easing,
-            css: (t) => {
-                const eased = easing(t);
-                return `
-                  opacity: ${eased};
-                  transform: scale(${start + (1 - start) * eased});
-                  display: ${t > 0.3 ? 'block' : 'none'};
-                `;
-            }
-        };
-    }
-    function fadeslide(node, options = {}) {
-        const fadeConfig = fade(node, options);
-        const slideConfig = slide(node, options);
-
-        return {
-            delay: options.delay || 0,
-            duration: options.duration || 300,
-            easing: options.easing,
-            css: (t, u) => {
-                return `
-                    ${fadeConfig.css(t, u)}
-                    ${slideConfig.css(t, u)}
-                    display: ${t > 0.9 ? 'block' : 'none'};
-                `;
-            }
-        };
-    }
-    const [send, receive] = crossfade({});
+    const attemptTotal = $derived(
+        data.gamemode === Constants.gamemodeId.trycount ? Constants.trycount[data.difficulty] : currentAttempt
+    );
 
     onMount(() => {
         answer = new RNG(data.difficulty).get()
@@ -176,6 +169,7 @@
         correctBeads = [];
         currentAttempt = 0;
         shownAttempt = 0;
+
         document.querySelectorAll(".android-pin-number").forEach((el, i) => {
             el.addEventListener("touchstart", e => {
                 if (window.matchMedia('(width < 40rem)').matches) {
@@ -213,41 +207,47 @@
 <svelte:window onkeydown={onkeydown}/>
 
 <div class="absolute bottom-0 flex flex-col w-full text-center py-2">
-    {#if correctBeads.length > 0}
+    {#if correctBeads.length > 0 || data.gamemode === Constants.gamemodeId.trycount}
         <div class="text-sm text-neutral-400" in:fly={{y: 40}} out:fly|global={{y: -100, delay: 0, opacity: 0, easing: quintIn}}>
-            {shownAttempt}/{currentAttempt} • {shownAttempt > 0 ? correctBeads[shownAttempt - 1][0] : ''}
+            {shownAttempt}/{attemptTotal} {shownAttempt > 0 ? `• ${correctBeads[shownAttempt - 1][0]}` : ''}
         </div>
         <div class="flex flex-row items-center justify-center" in:fly={{y: 40, delay: 50}} out:fly|global={{y: -100, delay: 0, opacity: 0, easing: quintIn}}>
             <button class="h-10 w-10 grid place-items-center rounded-full ease-linear duration-75 disabled:opacity-60 disabled:cursor-not-allowed not-disabled:hover:bg-neutral-400/50 not-disabled:hover:dark:bg-neutral-700/50 not-disabled:active:bg-neutral-500/50 not-disabled:dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => shownAttempt--} disabled={shownAttempt <= 1}>
                 <img alt="backward" class="h-5 right-1" src="/android/back.svg" />
             </button>
             <div class="flex flex-col items-center justify-between h-4">
-                {#each correctBeads as [attempt, beads], i (i)}
-                    <div animate:flip>
-                        {#if shownAttempt - 1 === i}
-                            <div class="flex flex-row items-center justify-center" transition:slide={{axis: 'y'}}>
-                                {#each beads as bead, j (j)}
-                                    <div in:fade|global={{duration: 300, delay: 150 * (j + 1)}} class="flex items-center justify-center">
-                                        {#if bead === 2}
-                                            <img alt="Dot Fill" class="h-4 aspect-square w-8" src="/android/dotfill.svg" />
-                                        {:else if bead === 1}
-                                            <img alt="Dot Fill" class="h-4 aspect-square w-8" src="/android/dot.svg" />
-                                        {:else}
-                                            <img alt="Dot Fill" class="h-4 aspect-square w-8" src="/android/dotempty.svg">
-                                        {/if}
-                                    </div>
-                                {/each}
-                            </div>
-                        {/if}
-                    </div>
-                {/each}
+                {#if correctBeads.length > 0}
+                    {#each correctBeads as [attempt, beads], i (i)}
+                        <div animate:flip>
+                            {#if shownAttempt - 1 === i}
+                                <div class="flex flex-row items-center justify-center" transition:slide={{axis: 'y'}}>
+                                    {#each beads as bead, j (j)}
+                                        <div in:fade|global={{duration: 300, delay: 150 * (j + 1)}} class="flex items-center justify-center">
+                                            {#if bead === 2}
+                                                <img alt="Dot Fill" class="h-4 aspect-square w-8" src="/android/dotfill.svg" />
+                                            {:else if bead === 1}
+                                                <img alt="Dot Fill" class="h-4 aspect-square w-8" src="/android/dot.svg" />
+                                            {:else}
+                                                <img alt="Dot Fill" class="h-4 aspect-square w-8" src="/android/dotempty.svg">
+                                            {/if}
+                                        </div>
+                                    {/each}
+                                </div>
+                            {/if}
+                        </div>
+                    {/each}
+                {:else}
+                    <div class="text-neutral-400 text-sm/4 ">No attempts yet</div>
+                {/if}
             </div>
             <button class="h-10 w-10 grid place-items-center rounded-full ease-linear duration-75 disabled:opacity-60 disabled:cursor-not-allowed not-disabled:hover:bg-neutral-400/50 not-disabled:hover:dark:bg-neutral-700/50 not-disabled:active:bg-neutral-500/50 not-disabled:dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => shownAttempt++} disabled={shownAttempt >= currentAttempt}>
                 <img alt="forward" class="h-5 right-1 " src="/android/forward.svg">
             </button>
         </div>
     {/if}
-<!--    <div class="text-sm text-neutral-300" transition:fly={{y: 40}}>{status}</div>-->
+    {#if status}
+        <div class="text-sm text-neutral-300" transition:slide={{y: 40}}>{status}</div>
+    {/if}
     <div class="px-5" in:fly={{delay: 50, y: 40}} out:fly={{y: -100, delay: 100, opacity: 0, easing: quintIn}}>
         <div class="border-b-2 border-neutral-500 text-5xl  font-thin w-full p-2">
             <div class="flex flex-row justify-center items-center">
@@ -267,7 +267,7 @@
                                          in:scale out:fadescale>{digit}</div>
                                 {:then x}
                                     <img alt="Dot Fill" class="h-2 aspect-square w-6" src="/android/dotfill.svg"
-                                         in:fadeslide={{delay: 80, duration: 80}}>
+                                         in:fadeslide={{delay: 100, duration: 80}}>
                                 {/await}
                             {/if}
                             {#if i === 14}
@@ -326,7 +326,7 @@
             <span class="font-light n">0</span>
             <span class="text-[7px] opacity-0">s</span>
         </button>
-        <button class="android-pin-number exclude {data.difficulty !== Constants.difficultyId.impossible ? 'opacity-0 !cursor-default' : ''}" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}} onclick={() => submit()}>
+        <button class="android-pin-number exclude {data.difficulty !== Constants.difficultyId.impossible ? 'opacity-0 !cursor-default' : ''}" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}} onclick={() => data.difficulty === Constants.difficultyId.impossible && submit()}>
             <img alt="Done" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active"
                  src="/android/done.png">
         </button>
