@@ -170,7 +170,6 @@
 
     onMount(() => {
         answer = new RNG(data.difficulty).get()
-        console.log(answer);
 
         isToUnlock = false;
         lockPin = false;
