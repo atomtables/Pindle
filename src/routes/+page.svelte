@@ -12,7 +12,7 @@
     onMount(() => window.scroll(0, 1))
 </script>
 
-<div class="w-screen h-dvh flex items-center justify-center select-none [-webkit-user-select:none] ">
+<div class="w-screen h-dvh flex items-center justify-center select-none [-webkit-user-select:none] touch-manipulation">
     <div class="relative parent overflow-hidden w-full md:w-md mx-auto h-full md:h-auto md:aspect-9/16 md:shadow-glow md:shadow-black md:dark:shadow-white bg-neutral-800/50 transition-all">
         <div class="-z-2 absolute top-0 right-0 w-full h-full bg-[url(/background.webp)] bg-cover android-unlock android-unlock-background"></div>
         {#if !activated.go}
@@ -22,7 +22,7 @@
                 <LockScreen bind:instructions bind:activated />
             {/if}
         {:else if !gamescreen.complete}
-            <GameScreen difficulty="easy" answer="1224" bind:next={gamescreen}/>
+            <GameScreen old={activated} bind:next={gamescreen}/>
         {:else}
             <ResultScreen bind:gamescreen bind:activated/>
         {/if}
