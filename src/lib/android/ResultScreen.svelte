@@ -1,7 +1,6 @@
 <script>
-    import { fly, fade } from "svelte/transition";
-    import { quintIn } from "svelte/easing";
-    import { formatTime } from "$lib/helpers.js";
+    import {fly} from "svelte/transition";
+    import {formatTime} from "$lib/helpers.js";
     import Constants from "$lib/gameplay/Constants.js";
     import {LocalStore} from "$lib/LocalState.svelte.js";
 
@@ -19,12 +18,14 @@
         } else {
             const subject = encodeURIComponent("Check out Pindle");
             const body = encodeURIComponent(`I completed Pindle in ${gamescreen.attempts} attempts on ${gamescreen.difficulty}! How can you do? Check it out: ${window.location.href}`);
-            const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
-            window.location.href = mailtoLink;
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
         }
     }
 
     let onoutroend = $state();
+    const time = $derived(formatTime(gamescreen.time));
+
+    let bestScore = new LocalStore(`best-${activated.difficulty}-${activated.gamemode}`, {})
 </script>
 
 {#if !animateAway}
@@ -36,11 +37,12 @@
                         <div class="font-thin text-7xl xs:text-8xl text-green-500">
                             Success!
                         </div>
-                        <div class="px-1 font-light text-2xl">
+                        <div class="px-1 font-light text-2xl pt-1">
                             {#if gamescreen.best}
                                 <div class="flex flex-row items-center">
-                                    <img src="/android/trophy.svg" alt="Trophy" class="w-8 aspect-square mr-2 invert dark:invert-0">
-                                    <span>New personal best!</span>
+                                    <img src="/android/trophy.svg" alt="Trophy" class="w-8 mr-2 aspect-square object-cover invert dark:invert-0">
+                                    <span>Smashed your record high!</span>
+                                </div>
                             {:else}
                                 Successfully solved the stumper.
                             {/if}
@@ -51,7 +53,7 @@
                         <div class="font-thin text-7xl/18 xs:text-8xl/20 pt-1 text-red-500">
                             Failure...
                         </div>
-                        <div class="px-1 font-light text-2xl">
+                        <div class="px-1 font-light text-2xl pt-1">
                             {#if gamescreen["quit"]}
                                 Forfeited the game.
                             {:else if gamescreen["timeout"]}
@@ -64,11 +66,30 @@
                         </div>
                     </div>
                 {/if}
-                <div class="px-1">took {gamescreen.attempts} attempts and {formatTime(activated.gamemode === Constants.gamemodeId.minute ? Constants.minute[activated.difficulty] - gamescreen.time : gamescreen.time)} time.</div>
+                <div class="flex flex-col divide-neutral-400/75 divide-y-2 border-2 border-neutral-400/75 mt-2">
+                    <div class="p-2 font-light">Statistics for your <b>{Constants.difficulty[activated.difficulty]} {Constants.gamemode[activated.gamemode]}</b> attempts</div>
+                    <div class="flex flex-row justify-between *:p-2">
+                        <div class="text-xl font-light flex-shrink">This game</div>
+                        <div class="flex flex-row items-center justify-evenly flex-1">
+                            <div class="text-xl font-bold flex-1 text-center">{gamescreen.attempts} attempt{gamescreen.attempts !== 1 ? 's' : ''}</div>
+                            <div class="text-xl font-bold flex-1 text-center">{time} seconds</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-row justify-between *:p-2">
+                        <div class="text-xl font-light flex-shrink">Best score</div>
+                        <div class="flex flex-row items-center justify-evenly flex-1">
+                            {#if bestScore.value.attempts && bestScore.value.time}
+                                <div class="text-xl font-bold flex-1 text-center">{bestScore.value.attempts} attempt{gamescreen.attempts !== 1 ? 's' : ''}</div>
+                                <div class="text-xl font-bold flex-1 text-center">{formatTime(bestScore.value.time)} seconds</div>
+                            {:else}
+                                <div class="text-xl font-bold flex-1 text-center">N/A</div>
+                                <div class="text-xl font-bold flex-1 text-center">N/A</div>
+                            {/if}
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="h-96">
-                Leaderboard not available
-            </div>
+
             <div class="flex flex-col space-y-2">
                 <button onclick={() => {animateAway = true; onoutroend = () => (gamescreen.history = true, gamescreen.complete = false)}} class="cursor-pointer bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400 dark:hover:bg-neutral-600 active:bg-neutral-500 dark:active:bg-neutral-500 transition-colors p-2 w-full text-left uppercase font-bold flex flex-row items-center">
                     <img src="/android/history.svg" alt="History" class="w-8 aspect-square mr-2 invert dark:invert-0">

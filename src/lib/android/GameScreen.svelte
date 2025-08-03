@@ -32,10 +32,7 @@
     let currentAttempt = $state(0);
     let shownAttempt = $state(0);
 
-    let bestScore = new LocalStore(`best-${data.difficulty}-${data.gamemode}`, {
-        attempts: 0,
-        time: 0
-    })
+    let bestScore = new LocalStore(`best-${data.difficulty}-${data.gamemode}`, {})
 
     const isFull = $derived( Constants.reachedLimit(data.difficulty, input.length) );
     $effect(() => { lockPin = isFull }) // i love you svelte developers
@@ -43,23 +40,27 @@
     const victory = () => {
         // see if current is better than best
         let best = false;
-        if (Constants.conversion.get(bestScore.value.attempts, bestScore.value.time) <
-            Constants.conversion.get(currentAttempt, activated.gamemode === Constants.gamemodeId.minute ? Constants.minute[activated.difficulty] - gamescreen.time : gamescreen.time)) {
+        console.log("seconds", bestScore.value.time, secondsRemaining);
+        console.log("comparison", Constants.conversion.get(bestScore.value.attempts, bestScore.value.time),
+            Constants.conversion.get(currentAttempt, data.gamemode === Constants.gamemodeId.minute ? Constants.minute[data.difficulty] - secondsRemaining : secondsRemaining));
+        if (Constants.conversion.get(bestScore.value.attempts, bestScore.value.time) >
+            Constants.conversion.get(currentAttempt, data.gamemode === Constants.gamemodeId.minute ? Constants.minute[data.difficulty] - secondsRemaining : secondsRemaining)) {
+
             bestScore.value = {
                 attempts: currentAttempt,
-                time: activated.gamemode === Constants.gamemodeId.minute ? Constants.minute[activated.difficulty] - gamescreen.time : gamescreen.time
+                time: data.gamemode === Constants.gamemodeId.minute ? Constants.minute[data.difficulty] - secondsRemaining : secondsRemaining
             }
             best = true;
         }
-        next = ({
+        tick().then(() => next = ({
             complete: true,
             win: true,
             attempts: currentAttempt,
             tries: correctBeads,
             correct: answer,
-            time: secondsRemaining,
+            time: data.gamemode === Constants.gamemodeId.minute ? Constants.minute[data.difficulty] - secondsRemaining : secondsRemaining,
             best
-        });
+        }));
     }
     const loss = factor => {
         next = ({

@@ -50,6 +50,7 @@ export default {
         attempt: 10, // 1 attempt is 10 seconds
         time: 0.2, // 5 seconds is 1 attempt,
         get(attempt: number, time: number) {
+            if (!attempt || !time) return Infinity;
             return attempt * this.attempt + time * this.time;
         }
     }
