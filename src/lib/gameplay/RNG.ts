@@ -15,7 +15,7 @@ RNG.prototype.get = function (): string {
     let num: string = "";
     if (this.diff !== 3 && 0 <= this.diff && this.diff <= 2) {
         for (let i = 0; i < Constants.length[this.diff]; i++) {
-            num += i+1 // this.rand(0, 9).toString();
+            num += this.rand(0, 9).toString();
         }
     } else if (this.diff === 3) {
         for (let i = 0; i < this.rand(Constants.length[this.diff][0], Constants.length[this.diff][1]); i++) {
