@@ -1,5 +1,5 @@
 <script>
-    import {onMount} from "svelte";
+    import {onMount, tick} from "svelte";
     import {crossfade, fade, scale, slide, fly} from "svelte/transition";
     import {flip} from "svelte/animate";
     import {cubicOut, quintIn} from "svelte/easing";
@@ -7,12 +7,14 @@
     import {RNG} from "$lib/gameplay/RNG.js";
     import Constants from "$lib/gameplay/Constants.js";
     import { fadescale, fadeslide } from "$lib/transitions";
+    import { formatTime } from "$lib/helpers.js";
+    import {LocalStore} from "$lib/LocalState.svelte.js";
 
     let { old: data, next = $bindable() } = $props();
 
-    let answer = $state();
+    let answer = null;
     let status = $state("")
-    let active = $state({});
+    let active = {};
     let lockPin = $state(false);
     let isToUnlock = $state(false)
     let showNum = $state({})
@@ -20,12 +22,58 @@
     let input = $state("");
     let exitPrompt = $state(false);
 
+    let secondsRemaining = $state(-1);
+    let timeRemainingS = $derived(formatTime(secondsRemaining))
+    $effect(() => {
+        if (data.gamemode === Constants.gamemodeId.minute && secondsRemaining === 0) loss("timeout")
+    })
+
     let correctBeads = $state([]);
     let currentAttempt = $state(0);
     let shownAttempt = $state(0);
 
+    let bestScore = new LocalStore(`best-${data.difficulty}-${data.gamemode}`, {
+        attempts: 0,
+        time: 0
+    })
+
     const isFull = $derived( Constants.reachedLimit(data.difficulty, input.length) );
     $effect(() => { lockPin = isFull }) // i love you svelte developers
+
+    const victory = () => {
+        // see if current is better than best
+        let best = false;
+        if (Constants.conversion.get(bestScore.value.attempts, bestScore.value.time) <
+            Constants.conversion.get(currentAttempt, activated.gamemode === Constants.gamemodeId.minute ? Constants.minute[activated.difficulty] - gamescreen.time : gamescreen.time)) {
+            bestScore.value = {
+                attempts: currentAttempt,
+                time: activated.gamemode === Constants.gamemodeId.minute ? Constants.minute[activated.difficulty] - gamescreen.time : gamescreen.time
+            }
+            best = true;
+        }
+        next = ({
+            complete: true,
+            win: true,
+            attempts: currentAttempt,
+            tries: correctBeads,
+            correct: answer,
+            time: secondsRemaining,
+            best
+        });
+    }
+    const loss = factor => {
+        next = ({
+            complete: true,
+            win: false,
+            [factor]: true,
+            attempts: currentAttempt,
+            tries: correctBeads,
+            correct: answer,
+            time: secondsRemaining
+        })
+        console.log(next);
+    };
+
     const onkeydown = e => {
         if (e.key === 'Backspace') {
             if (lockPin) return;
@@ -58,6 +106,11 @@
             }
             onpinclick(e.key);
         } else if (e.key === 'Enter') {
+            if (lockPin) return;
+            if (data.difficulty === Constants.difficultyId.impossible) submit();
+        } else if (e.key === 'Escape') {
+            if (lockPin) return;
+            exitPrompt = true;
         }
     };
 
@@ -74,35 +127,18 @@
         lockPin = true;
         isToUnlock = true;
         if (!timeoutExecutedOnce) timeoutExecutedOnce = setTimeout(() => {
-            if (data.gamemode === Constants.gamemodeId.trycount) {
-                if (currentAttempt >= Constants.trycount[data.difficulty]) {
-                    next = {
-                        complete: true,
-                        win: false,
-                        ranout: true,
-                        attempts: currentAttempt,
-                        tries: correctBeads,
-                        correct: answer
-                    };
-                    return;
-                }
+            if (!next.history && data.gamemode === Constants.gamemodeId.trycount && currentAttempt >= Constants.trycount[data.difficulty]) {
+                status = "";
+                tick().then(() => loss("attempts"));
+                return;
             }
-            if (input === answer) {
-                next = {
-                    complete: true,
-                    win: true,
-                    attempts: currentAttempt,
-                    tries: correctBeads,
-                    correct: answer
-                };
-            } else {
+            if (!next.history && input === answer) victory()
+            else {
                 input = ""
-                isToUnlock = lockPin = false;
-                timeoutExecutedOnce = false;
+                timeoutExecutedOnce = isToUnlock = lockPin = false;
             }
-        }, Constants.attemptTimeout(input.length))
+        }, data.gamemode === Constants.gamemodeId.minute ? 300 : Constants.attemptTimeout(input.length))
     }
-
     const onpinclick = e => {
         if (!e || lockPin) return;
         input += e;
@@ -148,27 +184,51 @@
         correctBeads.push([input, beads.sort().reverse()]);
         shownAttempt = ++currentAttempt;
     }
-    const losebyquitting = () => next = ({
-        complete: true,
-        win: false,
-        quit: true,
-        attempts: currentAttempt,
-        tries: correctBeads,
-        correct: answer
-    })
+
+    let historicalAttempts = $state();
+
     const attemptTotal = $derived(
-        data.gamemode === Constants.gamemodeId.trycount ? Constants.trycount[data.difficulty] : currentAttempt
+        next.history ? historicalAttempts :
+            data.gamemode === Constants.gamemodeId.trycount ? Constants.trycount[data.difficulty] : currentAttempt
     );
 
     onMount(() => {
-        answer = new RNG(data.difficulty).get()
-
-        isToUnlock = false;
-        lockPin = false;
-        input = "";
-        correctBeads = [];
-        currentAttempt = 0;
-        shownAttempt = 0;
+        let bull;
+        if (!next.history) {
+            answer = new RNG(data.difficulty).get()
+            isToUnlock = false;
+            lockPin = false;
+            input = "";
+            correctBeads = [];
+            currentAttempt = 0;
+            shownAttempt = 0;
+            if (data.gamemode === Constants.gamemodeId.minute) {
+                secondsRemaining = Constants.minute[data.difficulty];
+                bull = setInterval(() => {
+                    if (secondsRemaining > 0) {
+                        secondsRemaining--;
+                    }
+                }, 1000);
+            } else {
+                secondsRemaining = 0;
+                bull = setInterval(() => {
+                    secondsRemaining++;
+                }, 1000)
+            }
+        } else {
+            answer = next.correct;
+            isToUnlock = false;
+            lockPin = false;
+            input = "";
+            correctBeads = next.tries;
+            historicalAttempts = next.attempts;
+            if (correctBeads.at(-1)[0] !== answer) {
+                correctBeads.push([answer, Array(answer.length).fill(2)])
+                currentAttempt = next.attempts + 1;
+            } else currentAttempt = next.attempts;
+            shownAttempt = currentAttempt;
+            secondsRemaining = next.time || 0;
+        }
 
         document.querySelectorAll(".android-pin-number").forEach((el, i) => {
             el.addEventListener("touchstart", e => {
@@ -201,15 +261,16 @@
                 });
             }
         });
+        return () => clearInterval(bull)
     })
 </script>
 
 <svelte:window onkeydown={onkeydown}/>
 
 <div class="absolute bottom-0 flex flex-col w-full text-center py-2">
-    {#if correctBeads.length > 0 || data.gamemode === Constants.gamemodeId.trycount}
+    {#if correctBeads.length > 0 || data.gamemode !== Constants.gamemodeId.normal}
         <div class="text-sm text-neutral-400" in:fly={{y: 40}} out:fly|global={{y: -100, delay: 0, opacity: 0, easing: quintIn}}>
-            {shownAttempt}/{attemptTotal} {shownAttempt > 0 ? `• ${correctBeads[shownAttempt - 1][0]}` : ''}
+            {shownAttempt}/{attemptTotal} {data.gamemode === Constants.gamemodeId.minute ? `• ${timeRemainingS}` : ''} {shownAttempt > 0 ? `• ${correctBeads[shownAttempt - 1][0]}` : ''}
         </div>
         <div class="flex flex-row items-center justify-center" in:fly={{y: 40, delay: 50}} out:fly|global={{y: -100, delay: 0, opacity: 0, easing: quintIn}}>
             <button class="h-10 w-10 grid place-items-center rounded-full ease-linear duration-75 disabled:opacity-60 disabled:cursor-not-allowed not-disabled:hover:bg-neutral-400/50 not-disabled:hover:dark:bg-neutral-700/50 not-disabled:active:bg-neutral-500/50 not-disabled:dark:active:bg-neutral-500/50 cursor-pointer transition-all" onclick={() => shownAttempt--} disabled={shownAttempt <= 1}>
@@ -320,13 +381,15 @@
             <span class="font-light n">9</span>
             <span class="text-xs text-neutral-400">WXYZ</span>
         </button>
-        <div class="android-pin-number exclude opacity-0 !cursor-default" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}}></div>
+        <div onclick={() => (next.complete = true, next.history = false)} class="android-pin-number {!next.history && 'exclude opacity-0'} !cursor-default" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}}>
+            <span class="font-light n">back</span>
+        </div>
         <button class="android-pin-number" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}}>
             <span class="text-[7px] opacity-0">s</span>
             <span class="font-light n">0</span>
             <span class="text-[7px] opacity-0">s</span>
         </button>
-        <button class="android-pin-number exclude {data.difficulty !== Constants.difficultyId.impossible ? 'opacity-0 !cursor-default' : ''}" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}} onclick={() => data.difficulty === Constants.difficultyId.impossible && submit()}>
+        <button class="android-pin-number {data.difficulty !== Constants.difficultyId.impossible ? 'opacity-0 !cursor-default' : 'exclude'}" in:fly={{y: 40, delay: 250}} out:fly={{y: -100, delay: 250, opacity: 0, easing: quintIn}} onclick={() => data.difficulty === Constants.difficultyId.impossible && submit()}>
             <img alt="Done" class="h-6 aspect-square opacity-75 android-unlock android-unlock-icons-active"
                  src="/android/done.png">
         </button>
@@ -337,7 +400,7 @@
 </div>
 
 {#if exitPrompt}
-    <div class="absolute w-full h-full flex items-center px-5 bg-neutral-800/75" transition:fade={{duration: 200, easing: cubicOut}} onclick={() => exitPrompt = false} onkeypress={e => e.key === 'Escape' && (exitPrompt = false)} role="dialog" tabindex="-1">
+    <div class="absolute w-full h-full flex items-center px-5 bg-neutral-800/75" transition:fade={{duration: 200, easing: cubicOut}} onclick={() => exitPrompt = false} onkeydown={e => e.key === 'Escape' && (exitPrompt = false)} role="dialog" tabindex="-1">
         <div class="bg-neutral-200 dark:bg-neutral-700 w-full px-4 pt-4 pb-2" transition:fly={{y: 40, duration: 200, easing: cubicOut}}>
             <div class="text-xl mb-2 font-bold">
                 Are you sure you want to quit?
@@ -346,7 +409,7 @@
                 You will lose your progress and have to restart the game.
             </div>
             <div class="flex flex-row justify-end items-end space-x-2">
-                <button onclick={() => setTimeout(() => losebyquitting(), 50)} class="cursor-pointer bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300/50 dark:hover:bg-neutral-600 active:bg-neutral-400/50 dark:active:bg-neutral-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
+                <button onclick={() => tick().then(() => loss("quit"))} class="cursor-pointer bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300/50 dark:hover:bg-neutral-600 active:bg-neutral-400/50 dark:active:bg-neutral-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
                     <img src="/android/close.svg" alt="Restart" class="w-6 aspect-square mr-1 invert dark:invert-0">
                     <span class="text-sm mr-2">Quit</span>
                 </button>

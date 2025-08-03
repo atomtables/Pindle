@@ -32,10 +32,10 @@
                         <div class="text-2xl w-6 mr-2" style="font-family: 'Roboto Mono', monospace;" in:fade|global={{duration: 500, delay: 1000, easing: quintIn}}>4</div>
                     </div>
                     <div class="flex flex-row">
-                        <img src="/android/dotfill.svg" alt="Dot Fill" class="w-6 aspect-square mr-2" in:fade|global={{duration: 500, delay: 250, easing: quintIn}}>
-                        <img src="/android/dot.svg" alt="Dot Fill" class="w-6 aspect-square mr-2" in:fade|global={{duration: 500, delay: 500, easing: quintIn}}>
-                        <img src="/android/dot.svg" alt="Dot Fill" class="w-6 aspect-square mr-2" in:fade|global={{duration: 500, delay: 750, easing: quintIn}}>
-                        <img src="/android/dotempty.svg" alt="Dot Fill" class="w-6 aspect-square mr-2" in:fade|global={{duration: 500, delay: 1000, easing: quintIn}}>
+                        <img src="/android/dotfill.svg" alt="Digit in the correct position" class="w-6 aspect-square mr-2" in:fade|global={{duration: 500, delay: 250, easing: quintIn}}>
+                        <img src="/android/dot.svg" alt="Digit in the PIN but not in the correct position" class="w-6 aspect-square mr-2" in:fade|global={{duration: 500, delay: 500, easing: quintIn}}>
+                        <img src="/android/dot.svg" alt="Digit in the PIN but not in the correct position" class="w-6 aspect-square mr-2" in:fade|global={{duration: 500, delay: 750, easing: quintIn}}>
+                        <img src="/android/dotempty.svg" alt="Digit not in the PIN" class="w-6 aspect-square mr-2" in:fade|global={{duration: 500, delay: 1000, easing: quintIn}}>
                     </div>
                 {/if}
             </div>

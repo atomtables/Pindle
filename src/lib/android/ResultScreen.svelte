@@ -1,6 +1,9 @@
 <script>
     import { fly, fade } from "svelte/transition";
     import { quintIn } from "svelte/easing";
+    import { formatTime } from "$lib/helpers.js";
+    import Constants from "$lib/gameplay/Constants.js";
+    import {LocalStore} from "$lib/LocalState.svelte.js";
 
     let { activated = $bindable(), gamescreen = $bindable() } = $props();
     let animateAway = $state(false);
@@ -27,34 +30,50 @@
 {#if !animateAway}
     <div class="w-full h-full max-md:pb-2">
         <div class="w-full h-full p-2 pb-[env(safe-area-inset-bottom)] md:pb-2 flex flex-col justify-between text-neutral-100" in:fly|global={{y: "100%", delay: 900}} out:fly|global={{y: "-100%"}} onoutroend={() => onoutroend?.()}>
-            {#if gamescreen.win}
-                <div>
-                    <div class="font-thin text-7xl xs:text-8xl text-green-500">
-                        Success!
+            <div>
+                {#if gamescreen.win}
+                    <div>
+                        <div class="font-thin text-7xl xs:text-8xl text-green-500">
+                            Success!
+                        </div>
+                        <div class="px-1 font-light text-2xl">
+                            {#if gamescreen.best}
+                                <div class="flex flex-row items-center">
+                                    <img src="/android/trophy.svg" alt="Trophy" class="w-8 aspect-square mr-2 invert dark:invert-0">
+                                    <span>New personal best!</span>
+                            {:else}
+                                Successfully solved the stumper.
+                            {/if}
+                        </div>
                     </div>
-                    <div class="px-1 font-light text-2xl">
-                        Solved in <b>{gamescreen.attempts} attempts.</b>
+                {:else}
+                    <div class="flex flex-col">
+                        <div class="font-thin text-7xl/18 xs:text-8xl/20 pt-1 text-red-500">
+                            Failure...
+                        </div>
+                        <div class="px-1 font-light text-2xl">
+                            {#if gamescreen["quit"]}
+                                Forfeited the game.
+                            {:else if gamescreen["timeout"]}
+                                Took too long to solve.
+                            {:else if gamescreen["attempts"]}
+                                Tried way too many times.
+                            {:else}
+                                Broke the game such that it didn't know why you lost. Truly extraordinary.
+                            {/if}
+                        </div>
                     </div>
-                </div>
-            {:else}
-                <div>
-                    <div class="font-thin text-7xl xs:text-8xl text-red-500">
-                        Failure...
-                    </div>
-                    <div class="px-1 font-light text-2xl">
-                        {#if gamescreen.quit}
-                            Quit after <b>{gamescreen.attempts} attempts.</b>
-                        {:else}
-                            Solved in <b>{gamescreen.attempts} attempts.</b>
-                        {/if}
-                    </div>
-                    <div class="font-bold px-1">The answer was {gamescreen.correct}...</div>
-                </div>
-            {/if}
+                {/if}
+                <div class="px-1">took {gamescreen.attempts} attempts and {formatTime(activated.gamemode === Constants.gamemodeId.minute ? Constants.minute[activated.difficulty] - gamescreen.time : gamescreen.time)} time.</div>
+            </div>
             <div class="h-96">
                 Leaderboard not available
             </div>
             <div class="flex flex-col space-y-2">
+                <button onclick={() => {animateAway = true; onoutroend = () => (gamescreen.history = true, gamescreen.complete = false)}} class="cursor-pointer bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400 dark:hover:bg-neutral-600 active:bg-neutral-500 dark:active:bg-neutral-500 transition-colors p-2 w-full text-left uppercase font-bold flex flex-row items-center">
+                    <img src="/android/history.svg" alt="History" class="w-8 aspect-square mr-2 invert dark:invert-0">
+                    <span class="mt-0.5 text-neutral-900 dark:text-neutral-100">View the answer</span>
+                </button>
                 <button onclick={share} class="cursor-pointer bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400 dark:hover:bg-neutral-600 active:bg-neutral-500 dark:active:bg-neutral-500 transition-colors p-2 w-full text-left uppercase font-bold flex flex-row items-center">
                     <img src="/android/share.svg" alt="Share" class="w-8 aspect-square mr-2 invert dark:invert-0">
                     <span class="mt-0.5 text-neutral-900 dark:text-neutral-100">Share</span>
