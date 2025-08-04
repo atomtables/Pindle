@@ -9,6 +9,8 @@
     import { fadescale, fadeslide } from "$lib/transitions";
     import { formatTime } from "$lib/helpers.js";
     import {LocalStore} from "$lib/LocalState.svelte.js";
+    import {AccuracyCalculation} from "$lib/gameplay/AccuracyCalculation.js";
+    import { PUBLIC_DAILY_URL } from "$env/static/public";
 
     let { old: data, next = $bindable() } = $props();
 
@@ -40,9 +42,6 @@
     const victory = () => {
         // see if current is better than best
         let best = false;
-        console.log("seconds", bestScore.value.time, secondsRemaining);
-        console.log("comparison", Constants.conversion.get(bestScore.value.attempts, bestScore.value.time),
-            Constants.conversion.get(currentAttempt, data.gamemode === Constants.gamemodeId.minute ? Constants.minute[data.difficulty] - secondsRemaining : secondsRemaining));
         if (Constants.conversion.get(bestScore.value.attempts, bestScore.value.time) >
             Constants.conversion.get(currentAttempt, data.gamemode === Constants.gamemodeId.minute ? Constants.minute[data.difficulty] - secondsRemaining : secondsRemaining)) {
 
@@ -115,7 +114,52 @@
         }
     };
 
+    let dailyProcessing = $state(null)
+
     let timeoutExecutedOnce = false;
+    const submitDaily = async () => {
+        if (!data.daily) return;
+        lockPin = true;
+        isToUnlock = true;
+        let sessionId = data.sessionId
+        let res = await fetch(`${PUBLIC_DAILY_URL}/attempt`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                guess: input,
+                sessionId
+            })
+        })
+        if (!res.ok) {
+            status = "Failed to submit daily attempt. Please try again later.";
+            return;
+        }
+        let json = await res.json();
+        if (json.code === 999) {
+            correctBeads.push([input, json.data])
+        } else if (json.code === 1000) {
+            correctBeads.push([input, Array(input.length).fill(2)])
+        }
+        shownAttempt = ++currentAttempt;
+        if (!timeoutExecutedOnce) timeoutExecutedOnce = setTimeout(() => {
+            input = ""
+            timeoutExecutedOnce = isToUnlock = lockPin = false;
+            if (json.code === 1000) {
+                next = ({
+                    complete: true,
+                    win: true,
+                    attempts: json.attempts,
+                    tries: correctBeads,
+                    time: json.time,
+                    history: false,
+                    daily: true,
+                    dailyId: json.id,
+                })
+            }
+        }, Constants.attemptTimeout(input.length))
+    }
     const submit = () => {
         status = "";
         for (let [attempt] of correctBeads) {
@@ -124,6 +168,7 @@
                 break;
             }
         }
+        if (data.daily) { dailyProcessing = submitDaily(); return;}
         showattempt()
         lockPin = true;
         isToUnlock = true;
@@ -159,29 +204,8 @@
         });
     };
     const showattempt = () => {
-        let beads = [];
-        let counter = new Counter(input);
-        let inputs = counter.result;
-        let answerdup = answer.split('');
-        // get exact places
-        for (let i = 0; i < input.length; i++) {
-            if (input[i] === answer?.[i]) {
-                beads.push(2);
-                inputs[input[i]]--;
-                answerdup[i] = null;
-            }
-        }
-        for (let [k, v] of counter) {
-            for (let j = 0; j < v; j++) {
-                if (answerdup.includes(k)) {
-                    answerdup[answerdup.indexOf(k)] = null;
-                    beads.push(1);
-                } else {
-                    beads.push(0);
-                }
-            }
-        }
-
+        if (data.daily) return;
+        let beads = AccuracyCalculation(input, answer)
         correctBeads.push([input, beads.sort().reverse()]);
         shownAttempt = ++currentAttempt;
     }
@@ -404,13 +428,21 @@
     <div class="absolute w-full h-full flex items-center px-5 bg-neutral-800/75" transition:fade={{duration: 200, easing: cubicOut}} onclick={() => exitPrompt = false} onkeydown={e => e.key === 'Escape' && (exitPrompt = false)} role="dialog" tabindex="-1">
         <div class="bg-neutral-200 dark:bg-neutral-700 w-full px-4 pt-4 pb-2" transition:fly={{y: 40, duration: 200, easing: cubicOut}}>
             <div class="text-xl mb-2 font-bold">
-                Are you sure you want to quit?
+                {#if !data.daily}
+                    Are you sure you want to quit?
+                {:else}
+                    Oh you sweet summer child...
+                {/if}
             </div>
             <div class="text-sm mb-5">
-                You will lose your progress and have to restart the game.
+                {#if !data.daily}
+                    You will lose your progress and have to restart the game.
+                {:else}
+                    You can't quit the daily! I guess you just have to... give it your all.
+                {/if}
             </div>
             <div class="flex flex-row justify-end items-end space-x-2">
-                <button onclick={() => tick().then(() => loss("quit"))} class="cursor-pointer bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300/50 dark:hover:bg-neutral-600 active:bg-neutral-400/50 dark:active:bg-neutral-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
+                <button onclick={() => tick().then(() => loss("quit"))} disabled={data.daily} class="cursor-pointer bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300/50 dark:hover:bg-neutral-600 active:bg-neutral-400/50 dark:active:bg-neutral-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
                     <img src="/android/close.svg" alt="Restart" class="w-6 aspect-square mr-1 invert dark:invert-0">
                     <span class="text-sm mr-2">Quit</span>
                 </button>

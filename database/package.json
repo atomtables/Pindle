@@ -1,0 +1,26 @@
+{
+  "name": "pindle-server",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:push": "drizzle-kit push"
+  },
+  "keywords": [],
+  "author": "Adithiya Venkatakrishnan",
+  "license": "ISC",
+  "packageManager": "pnpm@10.13.1",
+  "dependencies": {
+    "@libsql/client": "^0.15.10",
+    "@types/node": "^24.1.0",
+    "dotenv": "^17.2.1",
+    "drizzle-orm": "^0.44.4",
+    "express": "^5.1.0",
+    "node-cron": "^4.2.1"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.4",
+    "tsx": "^4.20.3"
+  }
+}

@@ -19,11 +19,19 @@ export class LocalStore<T> {
     }
 
     serialize(value: T): string {
-        return JSON.stringify(value);
+        let data = JSON.stringify(value);
+        if (value instanceof Date) {
+            data = JSON.stringify({ __type: 'Date', value: value.toISOString() });
+        }
+        return data;
     }
 
     deserialize(item: string): T {
-        return JSON.parse(item);
+        let data: any = JSON.parse(item);
+        if (data && data.__type === 'Date') {
+            return new Date(data.value) as T;
+        }
+        return data as T;
     }
 }
 

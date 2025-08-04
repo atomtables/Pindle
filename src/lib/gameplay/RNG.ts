@@ -1,4 +1,5 @@
-import Constants from "$lib/gameplay/Constants";
+// @ts-ignore
+import Constants from "./Constants.ts";
 
 export function RNG(diff: number) {
     if (!(this instanceof RNG)) {

@@ -5,7 +5,7 @@
     import InstructionsScreen from "$lib/android/InstructionsScreen.svelte";
     import {onMount} from "svelte";
 
-    let activated = $state({});
+    let activated = $state({difficulty: 0, gamemode: 0});
     let instructions = $state(false);
     let gamescreen = $state({});
 

@@ -1,12 +1,52 @@
 <script>
-    import {onMount} from "svelte";
+    import {onMount, tick} from "svelte";
     import {fade, fly} from "svelte/transition";
     import {cubicOut, quintOut} from "svelte/easing";
     import Constants from "$lib/gameplay/Constants.js";
+    import {LocalStore} from "$lib/LocalState.svelte.js";
+    import { PUBLIC_DAILY_URL } from "$env/static/public";
 
     let {activated = $bindable(), instructions = $bindable()} = $props();
 
     let date = $state(new Date());
+    let dailyDone = new LocalStore("daily", new Date(0))
+    let daily = $state({done: true, leaderboard: true});
+    let dailyPrompt = $state(false);
+    const dailyStart = async () => {
+        let res;
+        try {
+            res = await fetch(`${PUBLIC_DAILY_URL}/register`, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: daily.name,
+                    leaderboard: daily.leaderboard
+                })
+            })
+        } catch (e) {
+            throw new Error(`Failed to connect to the server. ${e.message}. Try again later.`)
+        }
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(`Failed to connect to the server. "${data.message}" Try again later.`)
+        }
+        if (data.code === 0) {
+            dailyPrompt = false;
+            await tick();
+            await new Promise(r => setTimeout(() => r(), 200));
+            activated.sessionId = data.sessionId;
+            activated.daily = true;
+            activated.difficulty = (await daily.req).difficulty;
+            document.querySelectorAll(".android-unlock").forEach(el => {
+                el.style.animationFillMode = 'forwards';
+                el.classList.add("activate");
+            });
+            dailyDone.value = new Date();
+            setTimeout(() => activated.go = true, 300)
+        }
+    }
     onMount(() => {
         const interval = setInterval(() => {
             date = new Date();
@@ -29,6 +69,25 @@
         activated = {
             difficulty: 0,
             gamemode: 0,
+        }
+        if (Object.prototype.toString.call(dailyDone.value) === '[object Date]' && dailyDone.value.toString() !== 'Invalid Date') {
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            console.log(dailyDone.value.toDateString());
+            console.log(today.toDateString())
+            if ((dailyDone.value.toDateString() !== today.toDateString())) {
+                daily.done = false;
+                daily.req = new Promise((resolve, reject) => {
+                    fetch(PUBLIC_DAILY_URL).then((res) => {
+                        if (res.ok) {
+                            res.json().then(data => resolve(data));
+                        } else {
+                            reject(new Error("Failed to fetch daily"));
+                        }
+                    })
+                })
+            } else {
+                daily.done = true;
+            }
         }
         return () => {
             clearInterval(interval);
@@ -209,6 +268,7 @@
 
     let statusMessage = $state("");
     let instructionsB = $state();
+    let dailyB = $state();
     let settingsPrompt = $state(false);
 
     function instructionsF(event) {
@@ -232,6 +292,29 @@
         } else {
             statusMessage = "";
             settingsPrompt = true;
+        }
+    }
+    function dailyF(event) {
+        if (!this.clickOnce) {
+            // dark mode
+            if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                dailyB.style.backgroundColor = "color-mix(in oklab, var(--color-neutral-700) 100%, transparent)";
+            } else {
+                dailyB.style.backgroundColor = "color-mix(in oklab, var(--color-neutral-300) 100%, transparent)";
+            }
+            dailyB.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.16), 0 2px 4px rgba(0, 0, 0, 0.23)";
+            statusMessage = "Tap again to open"
+            this.clickOnce = true;
+            setTimeout(() => {
+                if (!dailyB) return;
+                statusMessage = "";
+                dailyB.style.backgroundColor = "";
+                dailyB.style.boxShadow = "";
+                this.clickOnce = false;
+            }, 1000);
+        } else {
+            statusMessage = "";
+            dailyPrompt = true;
         }
     }
     let difficulty = $state(0);
@@ -306,6 +389,72 @@
     </div>
 {/if}
 
+{#if dailyPrompt}
+    <div preventInteraction class="absolute w-full h-full flex items-center px-5 bg-neutral-800/75 z-500" in:fade={{duration: 200, easing: cubicOut}} out:fade={{duration: 400, easing: cubicOut}}>
+        <div class="bg-neutral-200 dark:bg-neutral-700 w-full px-4 pt-4 pb-2" in:fly={{y: 40, duration: 200, easing: cubicOut}} out:fly={{y: 40, duration: 400, easing: cubicOut}}>
+            <div class="text-xl mb-2 font-bold">
+                Pindle Daily Game
+            </div>
+            <div class="text-sm mb-5 space-y-2">
+                {#await daily.req}
+                {:then req}
+                    <div class="flex flex-col space-y-2">
+                        <div class="text-neutral-700 dark:text-neutral-300">
+                            {#if daily.done}
+                                You have already played today's game. Come back tomorrow for a new challenge!
+                            {:else}
+                                <div class="flex flex-col">
+                                    <div>
+                                        You can play the daily game once per day, obviously. <br>
+                                        Today's game is of a <b>{Constants.difficulty[req?.difficulty]} difficulty</b>, and you can
+                                        place on the leaderboard if you do well. (Realistically everyone's on the leaderboard, it's
+                                        just a matter of how low they are...)
+                                    </div>
+                                    <div class="flex flex-row items-center space-x-2 mt-2">
+                                        <input type="checkbox" bind:checked={daily.leaderboard} class="cursor-pointer">
+                                        <div>I want to play to join the leaderboard, and thereforth agree to the Terms of Service and Privacy Policy.</div>
+                                    </div>
+                                    {#if daily.leaderboard}
+                                        <div class="flex flex-row items-center space-x-2 mt-2">
+                                            <div class="flex-shrink-0">Public Name:</div>
+                                            <input type="text" bind:value={daily.name} class="flex-grow border-1 border-neutral-500/75 p-1 rounded-full">
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/if}
+                        </div>
+                    </div>
+                {/await}
+            </div>
+            <div class="flex flex-row justify-end items-end space-x-2">
+                <button onclick={() => dailyPrompt = false} class="cursor-pointer bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300/50 dark:hover:bg-neutral-600 active:bg-neutral-400/50 dark:active:bg-neutral-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
+                    <img src="/android/close.svg" alt="Restart" class="w-6 aspect-square mr-1 invert dark:invert-0">
+                    <span class="text-sm mr-2">Cancel</span>
+                </button>
+                <button onclick={() => daily.load = dailyStart()} class="cursor-pointer bg-amber-300 dark:bg-amber-700 hover:bg-amber-400/50 dark:hover:bg-amber-600 active:bg-amber-500/50 dark:active:bg-amber-500 transition-colors p-2 text-left uppercase font-bold flex flex-row items-center">
+                    <img src="/android/play.svg" alt="Continue" class="w-6 aspect-square mr-1 invert dark:invert-0">
+                    <span class="text-sm mr-2">
+                    {#if !daily.load}
+                        Play
+                    {:else}
+                        {#await daily.load}
+                            loading...
+                        {:catch error}
+                            Play
+                        {/await}
+                    {/if}
+                </span>
+                </button>
+            </div>
+            {#await daily.load catch error}
+                <div class="text-red-500 mt-2">
+                    {error.message}
+                </div>
+            {/await}
+        </div>
+    </div>
+{/if}
+
 {#if !cursor.auxExit}
     <div class="relative h-full pt-2 xs:p-0" in:fly|global={{y: "100%"}} out:fade|global={{duration: 500}}
          onoutrostart={() => document.querySelector(".android-unlock-background").classList.add("activate")}
@@ -343,14 +492,18 @@
                             <span class="text-sm text-neutral-600 dark:text-neutral-400">Add a little challenge, maybe spice things up.</span>
                         </span>
                     </button>
-                    <!--                    <button preventInteraction onclick={() => null}-->
-                    <!--                            class="transition-colors duration-150 ease-in-out px-2 py-3 bg-neutral-300/60 dark:bg-neutral-700/60  flex flex-row w-full items-center android-unlock android-unlock-notifications">-->
-                    <!--                        <img src="favicon.svg" alt="Pindle Icon" class="w-10 h-10 mr-2 rounded-full">-->
-                    <!--                        <span class="flex flex-col text-left">-->
-                    <!--                            <span class="">Pindle Instructions</span>-->
-                    <!--                            <span class="text-sm text-neutral-500 dark:text-neutral-400">Learn how to play with these instructions to help.</span>-->
-                    <!--                        </span>-->
-                    <!--                    </button>-->
+                    {#if !daily.done}
+                        {#await daily.req then req}
+                            <button preventInteraction onclick={dailyF} bind:this={dailyB}
+                                    class="z-0 transition-colors duration-150 ease-in-out border-b-1 border-neutral-500/50 px-2 py-3 bg-neutral-300/80 dark:bg-neutral-700/60  flex flex-row w-full items-center android-unlock android-unlock-notifications">
+                                <img src="favicon.svg" alt="Pindle Icon" class="w-10 h-10 mr-2 rounded-full">
+                                <span class="flex flex-col text-left">
+                                <span class="">Daily Game?</span>
+                                    <span class="text-sm text-neutral-500 dark:text-neutral-400">Play a {Constants.difficulty[req?.difficulty]} game and have a chance to get on the leaderboard.</span>
+                                </span>
+                            </button>
+                        {/await}
+                    {/if}
                 </div>
             </div>
             <div class="absolute bottom-16 text-sm text-neutral-200 opacity-85 w-full text-center z-50">
