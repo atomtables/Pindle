@@ -461,7 +461,7 @@
          onoutroend={() => cursor.auxExit?.()}>
         <div class="h-full android-unlock android-unlock-screen">
             <div class="absolute top-4 left-4 text-neutral-100">
-                <b>an atomtables game</b><span class="hidden xs:inline">: Credits</span>
+                <b>an atomtables game</b>
             </div>
             <div class="absolute top-3 right-3 flex flex-row-reverse items-center">
                 <img src="/android/avatar.png" alt="Android Default Avatar" class="w-8 h-8">
